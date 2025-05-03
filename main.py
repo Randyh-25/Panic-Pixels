@@ -22,6 +22,47 @@ pygame.display.set_caption("Pixel Panic")
 clock = pygame.time.Clock()
 sound_manager = SoundManager()
 
+def splash_screen():
+    # Create a surface for fading
+    fade_surface = pygame.Surface((WIDTH, HEIGHT))
+    fade_surface.fill(BLACK)
+    
+    # Create text for logo
+    title_font = load_font(72)
+    studio_font = load_font(36)
+    title_text = title_font.render("Don't Touch My Pixel", True, WHITE)
+    studio_text = studio_font.render("Tubes PBO", True, WHITE)
+    
+    # Position text in center
+    title_rect = title_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
+    studio_rect = studio_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 50))
+    
+    # Play splash sound at the start
+    sound_manager.play_splash_sound()
+    
+    # Fade in
+    for alpha in range(255, 0, -5):  # 255 to 0 for fade in
+        screen.fill(BLACK)
+        fade_surface.set_alpha(alpha)
+        screen.blit(title_text, title_rect)
+        screen.blit(studio_text, studio_rect)
+        screen.blit(fade_surface, (0, 0))
+        pygame.display.flip()
+        pygame.time.delay(5)
+    
+    # Hold the screen
+    pygame.time.delay(2000)  # Show splash for 2 seconds
+    
+    # Fade out
+    for alpha in range(0, 255, 5):  # 0 to 255 for fade out
+        screen.fill(BLACK)
+        fade_surface.set_alpha(alpha)
+        screen.blit(title_text, title_rect)
+        screen.blit(studio_text, studio_rect)
+        screen.blit(fade_surface, (0, 0))
+        pygame.display.flip()
+        pygame.time.delay(5)
+
 def main():
     sound_manager.stop_menu_music()
     game_map = Map("assets/maps/debugmap.png")
@@ -246,4 +287,6 @@ def game_mode_menu():
     menu.mainloop(screen)
 
 if __name__ == "__main__":
+    # Show splash screen before main menu
+    splash_screen()
     main_menu()

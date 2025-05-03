@@ -8,6 +8,9 @@ class SoundManager:
         # Load menu music
         self.menu_music = pygame.mixer.Sound("assets/sound/bg/menu.wav")
         
+        # Load splash sound
+        self.splash_sound = pygame.mixer.Sound("assets/sound/spl/spl.wav")
+        
         # Track music state
         self.current_music = None
         self.is_playing = False
@@ -27,7 +30,11 @@ class SoundManager:
             self.current_music = None
             self.is_playing = False
     
+    def play_splash_sound(self):
+        self.splash_sound.play()
+    
     def set_volume(self, volume):
         # Volume should be between 0 and 1
         volume = max(0, min(volume / 100, 1))
         self.menu_music.set_volume(volume)
+        self.splash_sound.set_volume(volume)
