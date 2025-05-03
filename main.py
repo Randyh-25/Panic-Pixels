@@ -7,6 +7,7 @@ from player import Player
 from enemy import Enemy
 from projectile import Projectile
 from experience import Experience
+import pygame_menu
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -98,5 +99,41 @@ def main():
     pygame.quit()
     sys.exit()
 
+def start_game(mode):
+    if mode == "solo":
+        main()  # Start the main game loop
+    elif mode == "split_screen":
+        print("Split screen mode is not implemented yet.")  # Placeholder
+
+def settings_menu():
+    menu = pygame_menu.Menu('Settings', WIDTH, HEIGHT, theme=pygame_menu.themes.THEME_DARK)
+    resolutions = [('800x600', (800, 600)), ('1024x768', (1024, 768)), ('1280x720', (1280, 720))]
+    menu.add.selector('Resolution: ', resolutions, onchange=lambda _, res: pygame.display.set_mode(res))
+    menu.add.toggle_switch('Fullscreen: ', False, onchange=lambda value: pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN if value else 0))
+    menu.add.range_slider('Master Volume: ', default=50, range_values=(0, 100), increment=1, onchange=lambda value: print(f"Volume set to {value}"))
+    menu.add.button('Back', main_menu)
+    menu.mainloop(screen)
+
+def quit_confirmation():
+    menu = pygame_menu.Menu('Quit Confirmation', WIDTH, HEIGHT, theme=pygame_menu.themes.THEME_DARK)
+    menu.add.label('Are you sure you want to quit?')
+    menu.add.button('Yes', pygame.quit)
+    menu.add.button('No', main_menu)
+    menu.mainloop(screen)
+
+def main_menu():
+    menu = pygame_menu.Menu('Main Menu', WIDTH, HEIGHT, theme=pygame_menu.themes.THEME_DARK)
+    menu.add.button('Start', lambda: game_mode_menu())
+    menu.add.button('Settings', settings_menu)
+    menu.add.button('Quit', quit_confirmation)
+    menu.mainloop(screen)
+
+def game_mode_menu():
+    menu = pygame_menu.Menu('Game Mode', WIDTH, HEIGHT, theme=pygame_menu.themes.THEME_DARK)
+    menu.add.button('Solo', lambda: start_game("solo"))
+    menu.add.button('Split Screen', lambda: start_game("split_screen"))
+    menu.add.button('Back', main_menu)
+    menu.mainloop(screen)
+
 if __name__ == "__main__":
-    main()
+    main_menu()
