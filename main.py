@@ -18,7 +18,7 @@ from sound_manager import SoundManager
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  
-pygame.display.set_caption("Pixel Panic")
+pygame.display.set_caption("Too Many Pixels")
 clock = pygame.time.Clock()
 sound_manager = SoundManager()
 
@@ -30,7 +30,7 @@ def splash_screen():
     # Create text for logo
     title_font = load_font(72)
     studio_font = load_font(36)
-    title_text = title_font.render("Don't Touch My Pixel", True, WHITE)
+    title_text = title_font.render("Too Many Pixels", True, WHITE)
     studio_text = studio_font.render("Tubes PBO", True, WHITE)
     
     # Position text in center
