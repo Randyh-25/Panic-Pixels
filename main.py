@@ -13,7 +13,7 @@ from maps import Map
 from ui import HealthBar  
 from ui import MoneyDisplay  
 from ui import XPBar 
-from settings import load_font  # Add this import
+from settings import load_font
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  
