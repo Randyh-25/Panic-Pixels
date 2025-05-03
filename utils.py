@@ -1,7 +1,7 @@
 import os
 import pickle
 import pygame_menu
-from settings import WIDTH, HEIGHT
+from settings import WIDTH, HEIGHT, load_font, FONT_PATH
 
 SAVE_FILE = "game.dat"
 
@@ -22,7 +22,11 @@ def load_game_data():
         return 0, 0  # Default values if file doesn't exist or is corrupted
 
 def pause_menu(screen, main_menu_callback):
-    menu = pygame_menu.Menu('Paused', WIDTH, HEIGHT, theme=pygame_menu.themes.THEME_DARK)
+    theme = pygame_menu.themes.THEME_DARK.copy()
+    theme.widget_font = FONT_PATH
+    theme.title_font = FONT_PATH
+    
+    menu = pygame_menu.Menu('Paused', WIDTH, HEIGHT, theme=theme)
     menu.add.button('Resume', lambda: None)  # Resume game
     menu.add.button('Main Menu', main_menu_callback)  # Go back to main menu
     menu.mainloop(screen)
@@ -44,7 +48,11 @@ def highest_score_menu(screen, player, main_menu_callback, replay_callback):
     # Save updated total money and highest score
     save_game_data(total_money, current_highest_score)
 
-    menu = pygame_menu.Menu('Game Over', WIDTH, HEIGHT, theme=pygame_menu.themes.THEME_DARK)
+    theme = pygame_menu.themes.THEME_DARK.copy()
+    theme.widget_font = FONT_PATH
+    theme.title_font = FONT_PATH
+    
+    menu = pygame_menu.Menu('Game Over', WIDTH, HEIGHT, theme=theme)
     menu.add.label(f'Level Reached: {player.level}')
     menu.add.label(f'XP Gained: {player.xp}')
     menu.add.label(f'Session Money: {player.session_money}')

@@ -13,6 +13,7 @@ from maps import Map
 from ui import HealthBar  
 from ui import MoneyDisplay  
 from ui import XPBar 
+from settings import load_font  # Add this import
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  
@@ -35,7 +36,7 @@ def main():
     paused = False
     enemy_spawn_timer = 0
     projectile_timer = 0
-    font = pygame.font.SysFont(None, 36)
+    font = load_font(36)  # Replace SysFont with custom font
     health_bar = HealthBar()
     money_display = MoneyDisplay()  # Tambahkan money display
     xp_bar = XPBar(WIDTH, HEIGHT)  # Add XP bar
@@ -161,9 +162,13 @@ def start_game(mode):
         print("Split screen mode is not implemented yet.")  # Placeholder
 
 def settings_menu():
+    theme = pygame_menu.themes.THEME_DARK.copy()
+    theme.widget_font = FONT_PATH
+    theme.title_font = FONT_PATH
+    
     menu = pygame_menu.Menu('Settings', min(WIDTH, pygame.display.get_surface().get_width()),
                           min(HEIGHT, pygame.display.get_surface().get_height()),
-                          theme=pygame_menu.themes.THEME_DARK)
+                          theme=theme)
     
     def toggle_fullscreen(value):
         global FULLSCREEN
@@ -195,24 +200,36 @@ def settings_menu():
     menu.mainloop(screen)
 
 def quit_confirmation():
-    menu = pygame_menu.Menu('Quit Confirmation', WIDTH, HEIGHT, theme=pygame_menu.themes.THEME_DARK)
+    theme = pygame_menu.themes.THEME_DARK.copy()
+    theme.widget_font = FONT_PATH
+    theme.title_font = FONT_PATH
+    
+    menu = pygame_menu.Menu('Quit Confirmation', WIDTH, HEIGHT, theme=theme)
     menu.add.label('Are you sure you want to quit?')
     menu.add.button('Yes', pygame.quit)
     menu.add.button('No', main_menu)
     menu.mainloop(screen)
 
 def main_menu():
+    theme = pygame_menu.themes.THEME_DARK.copy()
+    theme.widget_font = FONT_PATH  # Use custom font for menu
+    theme.title_font = FONT_PATH  # Use custom font for title
+    
     menu = pygame_menu.Menu('Main Menu', 
                           min(WIDTH, pygame.display.get_surface().get_width()),
-                          min(HEIGHT, pygame.display.get_surface().get_height()),  # Fixed method call
-                          theme=pygame_menu.themes.THEME_DARK)
+                          min(HEIGHT, pygame.display.get_surface().get_height()),
+                          theme=theme)
     menu.add.button('Start', game_mode_menu)
     menu.add.button('Settings', settings_menu)
     menu.add.button('Quit', quit_confirmation)
     menu.mainloop(screen)
 
 def game_mode_menu():
-    menu = pygame_menu.Menu('Game Mode', WIDTH, HEIGHT, theme=pygame_menu.themes.THEME_DARK)
+    theme = pygame_menu.themes.THEME_DARK.copy()
+    theme.widget_font = FONT_PATH
+    theme.title_font = FONT_PATH
+    
+    menu = pygame_menu.Menu('Game Mode', WIDTH, HEIGHT, theme=theme)
     menu.add.button('Solo', lambda: start_game("solo"))
     menu.add.button('Split Screen', lambda: start_game("split_screen"))
     menu.add.button('Back', main_menu)

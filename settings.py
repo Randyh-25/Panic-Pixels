@@ -27,6 +27,18 @@ RESOLUTIONS = [
 
 import pygame
 import pygame_menu
+import os
+
+# Font settings
+FONT_PATH = "assets/font/PixelifySans-VariableFont_wght.ttf"
+
+def load_font(size):
+    """Load the Pixelify Sans font with specified size"""
+    try:
+        return pygame.font.Font(FONT_PATH, size)
+    except:
+        print(f"Warning: Could not load font {FONT_PATH}, using system default")
+        return pygame.font.SysFont(None, size)
 
 # Track fullscreen state and resolution
 fullscreen = [FULLSCREEN]  # Default to fullscreen

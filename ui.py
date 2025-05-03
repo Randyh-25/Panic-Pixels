@@ -1,6 +1,7 @@
 import pygame
 from settings import WHITE
 from utils import load_game_data  # Add this import
+from settings import load_font  # Add this import
 
 class HealthBar:
     def __init__(self):
@@ -52,16 +53,16 @@ class MoneyDisplay:
         self.icon = pygame.image.load("assets/UI/level/money.png").convert_alpha()
         
         # Set ukuran icon
-        self.icon_width = 50
-        self.icon_height = 50
+        self.icon_width = 32  # Smaller icon size
+        self.icon_height = 32  # Keep it square
         self.icon = pygame.transform.scale(self.icon, (self.icon_width, self.icon_height))
         
         # Posisi (dibawah health bar)
         self.x = 10
-        self.y = 40  # Sesuaikan dengan posisi health bar
+        self.y = 45
         
         # Font untuk money
-        self.font = pygame.font.SysFont(None, 50)
+        self.font = load_font(32)  # Match font size with icon height
         
     def draw(self, screen, player_session_money):
         # Draw icon
@@ -73,7 +74,12 @@ class MoneyDisplay:
         
         # Draw money amount
         money_text = self.font.render(f": {total_money}", True, WHITE)
-        screen.blit(money_text, (self.x + self.icon_width + 5, self.y + 2))  # +2 untuk center vertikal
+        # Calculate vertical center alignment
+        text_y = self.y + (self.icon_height - money_text.get_height()) // 2
+        screen.blit(money_text, (
+            self.x + self.icon_width + 5,  # Small gap between icon and text
+            text_y  # Vertically centered
+        ))
 
 class XPBar:
     def __init__(self, screen_width, screen_height):
@@ -100,7 +106,10 @@ class XPBar:
         self.fill_y_offset = (self.bg_height - self.fill_height) // 2
         
         # Font for level display
-        self.font = pygame.font.SysFont(None, 24)
+        self.font = load_font(20)  # Slightly smaller font for better fit
+        
+        # Adjust text positioning
+        self.text_margin_bottom = 30  # Increased space between text and XP bar
 
     def draw(self, screen, current_xp, max_xp, level):
         # Draw background bar
@@ -121,14 +130,14 @@ class XPBar:
                 self.y + self.fill_y_offset
             ))
         
-        # Draw level text
+        # Draw level text (higher up from XP bar)
         level_text = self.font.render(f"Level {level}", True, WHITE)
         text_x = 10
-        text_y = self.y - 20
+        text_y = self.y - self.text_margin_bottom  # Move text higher up
         screen.blit(level_text, (text_x, text_y))
         
-        # Draw XP text
+        # Draw XP text (aligned with level text)
         xp_text = self.font.render(f"{current_xp}/{max_xp} XP", True, WHITE)
         xp_x = self.bg_width - xp_text.get_width() - 10
-        xp_y = self.y - 20
+        xp_y = self.y - self.text_margin_bottom  # Same height as level text
         screen.blit(xp_text, (xp_x, xp_y))
