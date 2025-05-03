@@ -12,10 +12,6 @@ class Player(pygame.sprite.Sprite):
         self.speed = 5
         self.health = 100
         self.score = 0
-        self.weapons = []
-
-    def add_weapon(self, weapon):
-        self.weapons.append(weapon)
 
     def update(self):
         keys = pygame.key.get_pressed()
@@ -28,5 +24,20 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_s] or keys[pygame.K_DOWN]:
             self.rect.y += self.speed
 
-        self.rect.x = max(0, min(WIDTH - self.rect.width, self.rect.x))
-        self.rect.y = max(0, min(HEIGHT - self.rect.height, self.rect.y))
+class Camera:
+    def __init__(self, width, height):
+        self.camera = pygame.Rect(0, 0, width, height)
+        self.width = width
+        self.height = height
+
+    def apply(self, entity):
+        # Geser posisi entity berdasarkan kamera
+        if isinstance(entity, pygame.Rect):
+            return entity.move(self.camera.topleft)
+        return entity.rect.move(self.camera.topleft)
+
+    def update(self, target):
+        # Kamera mengikuti pemain
+        x = -target.rect.centerx + WIDTH // 2
+        y = -target.rect.centery + HEIGHT // 2
+        self.camera = pygame.Rect(x, y, self.width, self.height)

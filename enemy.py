@@ -10,6 +10,11 @@ class Enemy(pygame.sprite.Sprite):
         self.image = pygame.Surface((20, 20))
         self.image.fill(RED)
         self.rect = self.image.get_rect()
+        self.spawn()
+        self.speed = random.uniform(1, 3)
+        self.health = 30
+
+    def spawn(self):
         side = random.randint(0, 3)
         if side == 0:
             self.rect.x = random.randint(0, WIDTH)
@@ -23,8 +28,6 @@ class Enemy(pygame.sprite.Sprite):
         else:
             self.rect.x = -self.rect.width
             self.rect.y = random.randint(0, HEIGHT)
-        self.speed = random.uniform(1, 3)
-        self.health = 30
 
     def update(self, player):
         dx = player.rect.centerx - self.rect.centerx

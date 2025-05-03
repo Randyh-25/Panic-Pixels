@@ -1,14 +1,16 @@
 # main.py
 import pygame
+import random
 import sys
 import math
 from settings import *
-from player import Player
+from player import Player, Camera
 from enemy import Enemy
 from projectile import Projectile
 from experience import Experience
 import pygame_menu
 from utils import pause_menu, highest_score_menu
+from maps import Map
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  # Start in fullscreen mode
@@ -16,6 +18,12 @@ pygame.display.set_caption("Survivor Game")
 clock = pygame.time.Clock()
 
 def main():
+    # Muat peta latar belakang
+    game_map = Map("assets/maps/debugmap.png")
+
+    # Inisialisasi kamera
+    camera = Camera(game_map.width, game_map.height)
+
     all_sprites = pygame.sprite.Group()
     enemies = pygame.sprite.Group()
     projectiles = pygame.sprite.Group()
@@ -44,9 +52,13 @@ def main():
         if paused:
             continue
 
+        # Update logika permainan
         enemy_spawn_timer += 1
         if enemy_spawn_timer >= 60:
+            # Spawn musuh di sekitar pemain
             enemy = Enemy()
+            enemy.rect.x = player.rect.x + random.randint(-300, 300)
+            enemy.rect.y = player.rect.y + random.randint(-300, 300)
             all_sprites.add(enemy)
             enemies.add(enemy)
             enemy_spawn_timer = 0
@@ -56,11 +68,14 @@ def main():
             closest_enemy = None
             min_dist = float('inf')
             for enemy in enemies:
+                # Hitung jarak antara pemain dan musuh
                 dist = math.hypot(enemy.rect.centerx - player.rect.centerx,
                                   enemy.rect.centery - player.rect.centery)
                 if dist < min_dist:
                     min_dist = dist
                     closest_enemy = enemy
+
+            # Jika ada musuh terdekat, tembak proyektil
             if closest_enemy:
                 projectile = Projectile(player.rect.centerx, player.rect.centery,
                                         closest_enemy.rect.centerx, closest_enemy.rect.centery)
@@ -75,7 +90,7 @@ def main():
 
         projectiles.update()
 
-        # Collisions
+        # Deteksi tabrakan antara proyektil dan musuh
         hits = pygame.sprite.groupcollide(projectiles, enemies, True, False)
         for projectile, hit_enemies in hits.items():
             for enemy in hit_enemies:
@@ -87,6 +102,7 @@ def main():
                     enemy.kill()
                     player.score += 10
 
+        # Deteksi tabrakan antara pemain dan musuh
         hits = pygame.sprite.spritecollide(player, enemies, False)
         for enemy in hits:
             player.health -= 1
@@ -94,16 +110,27 @@ def main():
                 highest_score_menu(screen, player.score, main_menu, main)
                 return
 
-        hits = pygame.sprite.spritecollide(player, experiences, True)
+        # Deteksi tabrakan antara pemain dan experience
+        hits = pygame.sprite.spritecollide(player, experiences, True)  # True untuk menghapus experience
         for exp in hits:
-            player.score += 5
+            player.score += 5  # Tambahkan skor pemain
 
-        screen.fill(BLACK)
-        all_sprites.draw(screen)
+        # Update kamera
+        camera.update(player)
+
+        # Tampilkan latar belakang
+        game_map.draw(screen, camera)
+
+        # Gambar semua sprite dengan kamera
+        for sprite in all_sprites:
+            screen.blit(sprite.image, camera.apply(sprite))
+
+        # Tampilkan teks kesehatan dan skor
         health_text = font.render(f"Health: {player.health}", True, WHITE)
         score_text = font.render(f"Score: {player.score}", True, WHITE)
         screen.blit(health_text, (10, 10))
         screen.blit(score_text, (10, 50))
+
         pygame.display.flip()
 
     pygame.quit()
