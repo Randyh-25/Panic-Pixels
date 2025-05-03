@@ -10,7 +10,8 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = (WIDTH // 2, HEIGHT // 2)
         self.speed = 5
-        self.health = 100
+        self.max_health = 100  # Tambahkan max_health
+        self.health = self.max_health
         self.score = 0
 
     def update(self):

@@ -11,6 +11,7 @@ from experience import Experience
 import pygame_menu
 from utils import pause_menu, highest_score_menu
 from maps import Map
+from ui import HealthBar  # Tambahkan import
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  # Start in fullscreen mode
@@ -37,6 +38,9 @@ def main():
     enemy_spawn_timer = 0
     projectile_timer = 0
     font = pygame.font.SysFont(None, 36)
+
+    # Inisialisasi health bar
+    health_bar = HealthBar()
 
     while running:
         clock.tick(FPS)
@@ -124,12 +128,18 @@ def main():
         for sprite in all_sprites:
             screen.blit(sprite.image, camera.apply(sprite))
 
-        # Tampilkan teks kesehatan dan skor
-        health_text = font.render(f"Health: {player.health}", True, WHITE)
+        # Ganti bagian render health text dengan health bar
+        # Hapus atau comment baris ini:
+        # health_text = font.render(f"Health: {player.health}", True, WHITE)
+        # screen.blit(health_text, (10, 10))
+        
+        # Tambahkan render health bar
+        health_bar.draw(screen, player.health, player.max_health)
+        
+        # Tetap tampilkan score
         score_text = font.render(f"Score: {player.score}", True, WHITE)
-        screen.blit(health_text, (10, 10))
-        screen.blit(score_text, (10, 50))
-
+        screen.blit(score_text, (10, 40))  # Sesuaikan posisi y agar tidak tumpang tindih
+        
         pygame.display.flip()
 
     pygame.quit()
