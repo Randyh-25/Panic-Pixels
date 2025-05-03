@@ -6,7 +6,7 @@ class HealthBar:
         self.full_bar = pygame.image.load("assets/UI/profile/hfull.png").convert_alpha()
         
         # Atur ukuran bar
-        self.bar_width = 400
+        self.bar_width = 300
         self.bar_height = 150
         self.empty_bar = pygame.transform.scale(self.empty_bar, (self.bar_width, self.bar_height))
         self.full_bar = pygame.transform.scale(self.full_bar, (self.bar_width, self.bar_height))

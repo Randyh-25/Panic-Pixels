@@ -1,4 +1,3 @@
-# main.py
 import pygame
 import random
 import sys
@@ -11,18 +10,15 @@ from experience import Experience
 import pygame_menu
 from utils import pause_menu, highest_score_menu
 from maps import Map
-from ui import HealthBar  # Tambahkan import
+from ui import HealthBar  
 
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  # Start in fullscreen mode
-pygame.display.set_caption("Survivor Game")
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  
+pygame.display.set_caption("Pixel Panic")
 clock = pygame.time.Clock()
 
 def main():
-    # Muat peta latar belakang
     game_map = Map("assets/maps/debugmap.png")
-
-    # Inisialisasi kamera
     camera = Camera(game_map.width, game_map.height)
 
     all_sprites = pygame.sprite.Group()
@@ -38,8 +34,6 @@ def main():
     enemy_spawn_timer = 0
     projectile_timer = 0
     font = pygame.font.SysFont(None, 36)
-
-    # Inisialisasi health bar
     health_bar = HealthBar()
 
     while running:
