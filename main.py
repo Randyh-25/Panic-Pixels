@@ -14,13 +14,16 @@ from ui import HealthBar
 from ui import MoneyDisplay  
 from ui import XPBar 
 from settings import load_font
+from sound_manager import SoundManager
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  
 pygame.display.set_caption("Pixel Panic")
 clock = pygame.time.Clock()
+sound_manager = SoundManager()
 
 def main():
+    sound_manager.stop_menu_music()
     game_map = Map("assets/maps/debugmap.png")
     camera = Camera(game_map.width, game_map.height)
 
@@ -189,13 +192,18 @@ def settings_menu():
             menu.resize(min(res[0], pygame.display.get_surface().get_width()),
                        min(res[1], pygame.display.get_surface().get_height()))
 
+    def change_volume(value):
+        global VOLUME
+        VOLUME = value
+        sound_manager.set_volume(value)
+
     resolution_selector = menu.add.selector('Resolution: ', RESOLUTIONS, onchange=change_resolution)
     if FULLSCREEN:
         resolution_selector.hide()
     
     menu.add.toggle_switch('Fullscreen: ', FULLSCREEN, onchange=toggle_fullscreen)
     menu.add.range_slider('Master Volume: ', default=VOLUME, range_values=(0, 100), 
-                         increment=1, onchange=lambda value: setattr(sys.modules[__name__], 'VOLUME', value))
+                         increment=1, onchange=change_volume)
     menu.add.button('Back', main_menu)
     menu.mainloop(screen)
 
@@ -211,13 +219,15 @@ def quit_confirmation():
     menu.mainloop(screen)
 
 def main_menu():
+    sound_manager.play_menu_music()
+    
     theme = pygame_menu.themes.THEME_DARK.copy()
-    theme.widget_font = FONT_PATH  # Use custom font for menu
-    theme.title_font = FONT_PATH  # Use custom font for title
+    theme.widget_font = FONT_PATH
+    theme.title_font = FONT_PATH
     
     menu = pygame_menu.Menu('Main Menu', 
                           min(WIDTH, pygame.display.get_surface().get_width()),
-                          min(HEIGHT, pygame.display.get_surface().get_height()),
+                          min(HEIGHT, pygame.display.get_surface().get_height()),  # Fixed get_height method
                           theme=theme)
     menu.add.button('Start', game_mode_menu)
     menu.add.button('Settings', settings_menu)
