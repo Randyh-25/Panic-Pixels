@@ -1,6 +1,7 @@
 # player.py
 import pygame
 from settings import WIDTH, HEIGHT, BLUE
+from utils import load_game_data
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -10,9 +11,13 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = (WIDTH // 2, HEIGHT // 2)
         self.speed = 5
-        self.max_health = 100  # Tambahkan max_health
+        self.max_health = 100
         self.health = self.max_health
-        self.score = 0
+        initial_money, _ = load_game_data()  # Load only money, ignore highest score
+        self.money = initial_money
+        self.xp = 0  # Replace score with xp
+        self.max_xp = 100  # XP needed for next level
+        self.level = 1
 
     def update(self):
         keys = pygame.key.get_pressed()
@@ -42,5 +47,4 @@ class Camera:
         self.camera = pygame.Rect(x, y, self.width, self.height)
 
     def get_viewport(self):
-        # Mengembalikan rect yang merepresentasikan area yang terlihat di layar
         return pygame.Rect(-self.camera.x, -self.camera.y, WIDTH, HEIGHT)

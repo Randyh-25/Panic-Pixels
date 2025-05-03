@@ -1,4 +1,5 @@
 import pygame
+from settings import WHITE  # Import color constants
 
 class HealthBar:
     def __init__(self):
@@ -43,3 +44,86 @@ class HealthBar:
                 self.x + self.bar_x_offset, 
                 self.y + self.bar_y_offset
             ))
+
+class MoneyDisplay:
+    def __init__(self):
+        # Load money icon
+        self.icon = pygame.image.load("assets/UI/level/money.png").convert_alpha()
+        
+        # Set ukuran icon
+        self.icon_width = 50
+        self.icon_height = 50
+        self.icon = pygame.transform.scale(self.icon, (self.icon_width, self.icon_height))
+        
+        # Posisi (dibawah health bar)
+        self.x = 10
+        self.y = 40  # Sesuaikan dengan posisi health bar
+        
+        # Font untuk money
+        self.font = pygame.font.SysFont(None, 50)
+        
+    def draw(self, screen, money):
+        # Draw icon
+        screen.blit(self.icon, (self.x, self.y))
+        
+        # Draw money amount
+        money_text = self.font.render(f": {money}", True, (255, 255, 255))
+        screen.blit(money_text, (self.x + self.icon_width + 5, self.y + 2))  # +2 untuk center vertikal
+
+class XPBar:
+    def __init__(self, screen_width, screen_height):
+        # Load images
+        self.bg = pygame.image.load("assets/UI/level/lvl.bg.png").convert_alpha()
+        self.fill = pygame.image.load("assets/UI/level/lvl.fill.png").convert_alpha()
+        
+        # Scale to screen width
+        self.bg_width = screen_width
+        self.bg_height = 14  # Double the original height
+        self.fill_width = screen_width - 20  # Leave some padding
+        self.fill_height = 14
+        
+        # Scale images
+        self.bg = pygame.transform.scale(self.bg, (self.bg_width, self.bg_height))
+        self.fill = pygame.transform.scale(self.fill, (self.fill_width, self.fill_height))
+        
+        # Position at bottom of screen
+        self.x = 0
+        self.y = screen_height - self.bg_height
+        
+        # Center fill in bg
+        self.fill_x_offset = (self.bg_width - self.fill_width) // 2
+        self.fill_y_offset = (self.bg_height - self.fill_height) // 2
+        
+        # Font for level display
+        self.font = pygame.font.SysFont(None, 24)
+
+    def draw(self, screen, current_xp, max_xp, level):
+        # Draw background bar
+        screen.blit(self.bg, (self.x, self.y))
+        
+        # Calculate fill width based on XP
+        xp_ratio = max(0, min(current_xp / max_xp, 1))
+        current_fill_width = int(self.fill_width * xp_ratio)
+        
+        if current_fill_width > 0:
+            # Create fill surface with alpha channel
+            fill_surface = pygame.Surface((current_fill_width, self.fill_height), pygame.SRCALPHA)
+            # Draw portion of fill bar
+            fill_surface.blit(self.fill, (0, 0), (0, 0, current_fill_width, self.fill_height))
+            # Draw fill bar
+            screen.blit(fill_surface, (
+                self.x + self.fill_x_offset,
+                self.y + self.fill_y_offset
+            ))
+        
+        # Draw level text
+        level_text = self.font.render(f"Level {level}", True, WHITE)
+        text_x = 10
+        text_y = self.y - 20
+        screen.blit(level_text, (text_x, text_y))
+        
+        # Draw XP text
+        xp_text = self.font.render(f"{current_xp}/{max_xp} XP", True, WHITE)
+        xp_x = self.bg_width - xp_text.get_width() - 10
+        xp_y = self.y - 20
+        screen.blit(xp_text, (xp_x, xp_y))

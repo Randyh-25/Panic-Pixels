@@ -11,6 +11,8 @@ import pygame_menu
 from utils import pause_menu, highest_score_menu
 from maps import Map
 from ui import HealthBar  
+from ui import MoneyDisplay  # Import MoneyDisplay
+from ui import XPBar  # Import XPBar
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  
@@ -35,6 +37,8 @@ def main():
     projectile_timer = 0
     font = pygame.font.SysFont(None, 36)
     health_bar = HealthBar()
+    money_display = MoneyDisplay()  # Tambahkan money display
+    xp_bar = XPBar(WIDTH, HEIGHT)  # Add XP bar
 
     while running:
         clock.tick(FPS)
@@ -97,20 +101,28 @@ def main():
                     all_sprites.add(exp)
                     experiences.add(exp)
                     enemy.kill()
-                    player.score += 10
+                    player.xp += 10  # XP instead of score
+                    player.money += 10  # Money from killing enemy
 
         # Deteksi tabrakan antara pemain dan musuh
         hits = pygame.sprite.spritecollide(player, enemies, False)
         for enemy in hits:
             player.health -= 1
             if player.health <= 0:
-                highest_score_menu(screen, player.score, main_menu, main)
+                highest_score_menu(screen, player, main_menu, main)  # Pass the entire player object
                 return
 
         # Deteksi tabrakan antara pemain dan experience
         hits = pygame.sprite.spritecollide(player, experiences, True)  # True untuk menghapus experience
         for exp in hits:
-            player.score += 5  # Tambahkan skor pemain
+            player.xp += 5  # XP instead of score
+            player.money += 5  # Money from collecting experience
+            
+            # Level up check
+            if player.xp >= player.max_xp:
+                player.level += 1
+                player.xp -= player.max_xp
+                player.max_xp = int(player.max_xp * 1.2)  # Increase XP needed for next level
 
         # Update kamera
         camera.update(player)
@@ -130,9 +142,11 @@ def main():
         # Tambahkan render health bar
         health_bar.draw(screen, player.health, player.max_health)
         
-        # Tetap tampilkan score
-        score_text = font.render(f"Score: {player.score}", True, WHITE)
-        screen.blit(score_text, (10, 40))  # Sesuaikan posisi y agar tidak tumpang tindih
+        # Tambahkan tampilan money
+        money_display.draw(screen, player.money)
+        
+        # Draw XP bar last so it's always on top
+        xp_bar.draw(screen, player.xp, player.max_xp, player.level)
         
         pygame.display.flip()
 
@@ -189,7 +203,7 @@ def quit_confirmation():
 def main_menu():
     menu = pygame_menu.Menu('Main Menu', 
                           min(WIDTH, pygame.display.get_surface().get_width()),
-                          min(HEIGHT, pygame.display.get_surface().get_height()),
+                          min(HEIGHT, pygame.display.get_surface().get_height()),  # Fixed method call
                           theme=pygame_menu.themes.THEME_DARK)
     menu.add.button('Start', game_mode_menu)
     menu.add.button('Settings', settings_menu)
