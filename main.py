@@ -103,7 +103,6 @@ def main():
                     exp = Experience(enemy.rect.centerx, enemy.rect.centery)
                     all_sprites.add(exp)
                     experiences.add(exp)
-                    player.xp += 10
                     player.session_money += 10
 
         # Deteksi tabrakan antara pemain dan musuh
