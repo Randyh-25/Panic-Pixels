@@ -8,9 +8,10 @@ from enemy import Enemy
 from projectile import Projectile
 from experience import Experience
 import pygame_menu
+from utils import pause_menu, highest_score_menu
 
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  # Start in fullscreen mode
 pygame.display.set_caption("Survivor Game")
 clock = pygame.time.Clock()
 
@@ -24,6 +25,7 @@ def main():
     all_sprites.add(player)
 
     running = True
+    paused = False
     enemy_spawn_timer = 0
     projectile_timer = 0
     font = pygame.font.SysFont(None, 36)
@@ -34,6 +36,13 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                paused = True
+                pause_menu(screen, main_menu)  # Show pause menu
+                paused = False
+
+        if paused:
+            continue
 
         enemy_spawn_timer += 1
         if enemy_spawn_timer >= 60:
@@ -82,7 +91,8 @@ def main():
         for enemy in hits:
             player.health -= 1
             if player.health <= 0:
-                running = False
+                highest_score_menu(screen, player.score, main_menu, main)
+                return
 
         hits = pygame.sprite.spritecollide(player, experiences, True)
         for exp in hits:
@@ -121,10 +131,12 @@ def quit_confirmation():
     menu.add.button('No', main_menu)
     menu.mainloop(screen)
 
+from settings import settings_menu
+
 def main_menu():
     menu = pygame_menu.Menu('Main Menu', WIDTH, HEIGHT, theme=pygame_menu.themes.THEME_DARK)
     menu.add.button('Start', lambda: game_mode_menu())
-    menu.add.button('Settings', settings_menu)
+    menu.add.button('Settings', lambda: settings_menu(screen, main_menu))
     menu.add.button('Quit', quit_confirmation)
     menu.mainloop(screen)
 
