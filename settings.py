@@ -39,7 +39,7 @@ def load_font(size):
     except:
         print(f"Warning: Could not load font {FONT_PATH}, using system default")
         return pygame.font.SysFont(None, size)
-
+    
 # Track fullscreen state and resolution
 fullscreen = [FULLSCREEN]  # Default to fullscreen
 current_resolution = CURRENT_RESOLUTION  # Gunakan tuple langsung

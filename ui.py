@@ -1,7 +1,24 @@
 import pygame
-from settings import WHITE
-from utils import load_game_data  # Add this import
-from settings import load_font  # Add this import
+from settings import WHITE, BLACK
+from utils import load_game_data 
+from settings import load_font 
+
+def render_text_with_border(font, text, text_color, border_color):
+    # Render the main text
+    text_surface = font.render(text, True, text_color)
+    
+    # Create a slightly larger surface for the border
+    final_surface = pygame.Surface((text_surface.get_width() + 2, text_surface.get_height() + 2), pygame.SRCALPHA)
+    
+    # Render border by offsetting the text in 8 directions
+    for dx, dy in [(-1,-1), (0,-1), (1,-1), (-1,0), (1,0), (-1,1), (0,1), (1,1)]:
+        border_text = font.render(text, True, border_color)
+        final_surface.blit(border_text, (dx + 1, dy + 1))
+    
+    # Draw the main text on top
+    final_surface.blit(text_surface, (1, 1))
+    
+    return final_surface
 
 class HealthBar:
     def __init__(self):
@@ -62,7 +79,7 @@ class MoneyDisplay:
         self.y = 45
         
         # Font untuk money
-        self.font = load_font(32)  # Match font size with icon height
+        self.font = load_font(32)
         
     def draw(self, screen, player_session_money):
         # Draw icon
@@ -72,13 +89,13 @@ class MoneyDisplay:
         saved_money, _ = load_game_data()
         total_money = saved_money + player_session_money
         
-        # Draw money amount
-        money_text = self.font.render(f": {total_money}", True, WHITE)
+        # Draw money amount with border
+        money_text = render_text_with_border(self.font, f": {total_money}", WHITE, BLACK)
         # Calculate vertical center alignment
         text_y = self.y + (self.icon_height - money_text.get_height()) // 2
         screen.blit(money_text, (
-            self.x + self.icon_width + 5,  # Small gap between icon and text
-            text_y  # Vertically centered
+            self.x + self.icon_width + 5,
+            text_y
         ))
 
 class XPBar:
@@ -130,14 +147,14 @@ class XPBar:
                 self.y + self.fill_y_offset
             ))
         
-        # Draw level text (higher up from XP bar)
-        level_text = self.font.render(f"Level {level}", True, WHITE)
+        # Draw level text with border
+        level_text = render_text_with_border(self.font, f"Level {level}", WHITE, BLACK)
         text_x = 10
-        text_y = self.y - self.text_margin_bottom  # Move text higher up
+        text_y = self.y - self.text_margin_bottom
         screen.blit(level_text, (text_x, text_y))
         
-        # Draw XP text (aligned with level text)
-        xp_text = self.font.render(f"{current_xp}/{max_xp} XP", True, WHITE)
+        # Draw XP text with border
+        xp_text = render_text_with_border(self.font, f"{current_xp}/{max_xp} XP", WHITE, BLACK)
         xp_x = self.bg_width - xp_text.get_width() - 10
-        xp_y = self.y - self.text_margin_bottom  # Same height as level text
+        xp_y = self.y - self.text_margin_bottom
         screen.blit(xp_text, (xp_x, xp_y))
