@@ -1,4 +1,0 @@
-pygame==2.1.0
-numpy==1.21.0
-pytest==6.2.4
-pillow==8.4.0
