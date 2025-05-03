@@ -1,7 +1,9 @@
-# settings.py
-WIDTH, HEIGHT = 1280, 720
+# Default resolution
+WIDTH, HEIGHT = 1366, 768  # Ubah ke resolusi default yang lebih kecil
+
 FPS = 60
 
+# Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED   = (255, 0, 0)
@@ -9,15 +11,29 @@ GREEN = (0, 255, 0)
 BLUE  = (0, 0, 255)
 YELLOW = (255, 255, 0)
 
+# Game settings
+FULLSCREEN = True  # Default to fullscreen
+CURRENT_RESOLUTION = (WIDTH, HEIGHT)
+VOLUME = 50
+
+# Available resolutions
+RESOLUTIONS = [
+    ('1280x720', (1280, 720)),
+    ('1366x768', (1366, 768)),
+    ('1920x1080', (1920, 1080)),
+    ('2560x1440', (2560, 1440)),
+    ('3840x2160', (3840, 2160)),
+]
+
 import pygame
 import pygame_menu
 
 # Track fullscreen state and resolution
-fullscreen = [True]  # Default to fullscreen
-current_resolution = (WIDTH, HEIGHT)  # Gunakan tuple langsung
+fullscreen = [FULLSCREEN]  # Default to fullscreen
+current_resolution = CURRENT_RESOLUTION  # Gunakan tuple langsung
 
 def settings_menu(screen, main_menu_callback):
-    resolutions = [('1280x720', (1280, 720))]
+    resolutions = RESOLUTIONS
 
     def toggle_fullscreen(value):
         fullscreen[0] = value
@@ -39,7 +55,7 @@ def settings_menu(screen, main_menu_callback):
     if fullscreen[0]:
         resolution_selector.hide()  # Hide resolution selector if fullscreen is active
     menu.add.toggle_switch('Fullscreen: ', fullscreen[0], onchange=toggle_fullscreen)
-    menu.add.range_slider('Master Volume: ', default=50, range_values=(0, 100), increment=1,
+    menu.add.range_slider('Master Volume: ', default=VOLUME, range_values=(0, 100), increment=1,
                           onchange=lambda value: print(f"Volume set to {value}"))
     menu.add.button('Back', main_menu_callback)
     menu.mainloop(screen)
