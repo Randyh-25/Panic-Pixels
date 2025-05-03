@@ -10,6 +10,8 @@ class Projectile(pygame.sprite.Sprite):
         self.image.fill(GREEN)
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
+        self.start_x = x
+        self.start_y = y
         dx = target_x - x
         dy = target_y - y
         dist = max(math.hypot(dx, dy), 0.1)
@@ -17,10 +19,16 @@ class Projectile(pygame.sprite.Sprite):
         self.dy = dy / dist
         self.speed = 7
         self.damage = 10
+        self.max_distance = 800  # Jarak maksimum proyektil dapat meluncur
 
     def update(self):
         self.rect.x += self.dx * self.speed
         self.rect.y += self.dy * self.speed
-        if (self.rect.right < 0 or self.rect.left > WIDTH or 
-            self.rect.bottom < 0 or self.rect.top > HEIGHT):
+        
+        # Hitung jarak yang sudah ditempuh
+        distance = math.hypot(self.rect.centerx - self.start_x, 
+                            self.rect.centery - self.start_y)
+        
+        # Hapus proyektil jika sudah melewati jarak maksimum
+        if distance > self.max_distance:
             self.kill()

@@ -31,13 +31,15 @@ class Camera:
         self.height = height
 
     def apply(self, entity):
-        # Geser posisi entity berdasarkan kamera
         if isinstance(entity, pygame.Rect):
             return entity.move(self.camera.topleft)
         return entity.rect.move(self.camera.topleft)
 
     def update(self, target):
-        # Kamera mengikuti pemain
         x = -target.rect.centerx + WIDTH // 2
         y = -target.rect.centery + HEIGHT // 2
         self.camera = pygame.Rect(x, y, self.width, self.height)
+
+    def get_viewport(self):
+        # Mengembalikan rect yang merepresentasikan area yang terlihat di layar
+        return pygame.Rect(-self.camera.x, -self.camera.y, WIDTH, HEIGHT)

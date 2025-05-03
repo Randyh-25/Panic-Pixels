@@ -5,29 +5,28 @@ import math
 from settings import WIDTH, HEIGHT, RED
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, player_pos):
         super().__init__()
         self.image = pygame.Surface((20, 20))
         self.image.fill(RED)
         self.rect = self.image.get_rect()
-        self.spawn()
+        self.spawn(player_pos)
         self.speed = random.uniform(1, 3)
         self.health = 30
 
-    def spawn(self):
-        side = random.randint(0, 3)
-        if side == 0:
-            self.rect.x = random.randint(0, WIDTH)
-            self.rect.y = -self.rect.height
-        elif side == 1:
-            self.rect.x = WIDTH
-            self.rect.y = random.randint(0, HEIGHT)
-        elif side == 2:
-            self.rect.x = random.randint(0, WIDTH)
-            self.rect.y = HEIGHT
-        else:
-            self.rect.x = -self.rect.width
-            self.rect.y = random.randint(0, HEIGHT)
+    def spawn(self, player_pos):
+        # Jarak spawn dari pemain
+        spawn_distance = 400  # Jarak minimal spawn dari pemain
+        
+        # Pilih sudut random untuk spawn
+        angle = random.uniform(0, 2 * math.pi)
+        
+        # Hitung posisi spawn relatif terhadap pemain
+        spawn_x = player_pos[0] + math.cos(angle) * spawn_distance
+        spawn_y = player_pos[1] + math.sin(angle) * spawn_distance
+        
+        self.rect.x = spawn_x
+        self.rect.y = spawn_y
 
     def update(self, player):
         dx = player.rect.centerx - self.rect.centerx

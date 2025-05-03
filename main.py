@@ -56,29 +56,28 @@ def main():
         enemy_spawn_timer += 1
         if enemy_spawn_timer >= 60:
             # Spawn musuh di sekitar pemain
-            enemy = Enemy()
-            enemy.rect.x = player.rect.x + random.randint(-300, 300)
-            enemy.rect.y = player.rect.y + random.randint(-300, 300)
+            enemy = Enemy((player.rect.centerx, player.rect.centery))
             all_sprites.add(enemy)
             enemies.add(enemy)
             enemy_spawn_timer = 0
 
         projectile_timer += 1
-        if projectile_timer >= 30:
+        if projectile_timer >= 30 and len(enemies) > 0:  # Pastikan ada musuh
             closest_enemy = None
             min_dist = float('inf')
+            
+            # Cari musuh terdekat tanpa batasan jarak
             for enemy in enemies:
-                # Hitung jarak antara pemain dan musuh
                 dist = math.hypot(enemy.rect.centerx - player.rect.centerx,
-                                  enemy.rect.centery - player.rect.centery)
+                              enemy.rect.centery - player.rect.centery)
                 if dist < min_dist:
                     min_dist = dist
                     closest_enemy = enemy
 
-            # Jika ada musuh terdekat, tembak proyektil
+            # Selalu tembak jika ada musuh
             if closest_enemy:
                 projectile = Projectile(player.rect.centerx, player.rect.centery,
-                                        closest_enemy.rect.centerx, closest_enemy.rect.centery)
+                                    closest_enemy.rect.centerx, closest_enemy.rect.centery)
                 all_sprites.add(projectile)
                 projectiles.add(projectile)
                 projectile_timer = 0
