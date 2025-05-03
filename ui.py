@@ -1,5 +1,6 @@
 import pygame
-from settings import WHITE  # Import color constants
+from settings import WHITE
+from utils import load_game_data  # Add this import
 
 class HealthBar:
     def __init__(self):
@@ -62,12 +63,16 @@ class MoneyDisplay:
         # Font untuk money
         self.font = pygame.font.SysFont(None, 50)
         
-    def draw(self, screen, money):
+    def draw(self, screen, player_session_money):
         # Draw icon
         screen.blit(self.icon, (self.x, self.y))
         
+        # Load saved money and add current session money
+        saved_money, _ = load_game_data()
+        total_money = saved_money + player_session_money
+        
         # Draw money amount
-        money_text = self.font.render(f": {money}", True, (255, 255, 255))
+        money_text = self.font.render(f": {total_money}", True, WHITE)
         screen.blit(money_text, (self.x + self.icon_width + 5, self.y + 2))  # +2 untuk center vertikal
 
 class XPBar:

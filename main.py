@@ -101,8 +101,8 @@ def main():
                     all_sprites.add(exp)
                     experiences.add(exp)
                     enemy.kill()
-                    player.xp += 10  # XP instead of score
-                    player.money += 10  # Money from killing enemy
+                    player.xp += 10
+                    player.session_money += 10  # Money from killing enemy
 
         # Deteksi tabrakan antara pemain dan musuh
         hits = pygame.sprite.spritecollide(player, enemies, False)
@@ -115,8 +115,8 @@ def main():
         # Deteksi tabrakan antara pemain dan experience
         hits = pygame.sprite.spritecollide(player, experiences, True)  # True untuk menghapus experience
         for exp in hits:
-            player.xp += 5  # XP instead of score
-            player.money += 5  # Money from collecting experience
+            player.xp += 5
+            player.session_money += 5  # Money from collecting experience
             
             # Level up check
             if player.xp >= player.max_xp:
@@ -143,7 +143,7 @@ def main():
         health_bar.draw(screen, player.health, player.max_health)
         
         # Tambahkan tampilan money
-        money_display.draw(screen, player.money)
+        money_display.draw(screen, player.session_money)
         
         # Draw XP bar last so it's always on top
         xp_bar.draw(screen, player.xp, player.max_xp, player.level)

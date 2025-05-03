@@ -29,22 +29,26 @@ def pause_menu(screen, main_menu_callback):
 
 def highest_score_menu(screen, player, main_menu_callback, replay_callback):
     # Load existing data
-    _, current_highest_score = load_game_data()
+    saved_money, current_highest_score = load_game_data()
+    
+    # Calculate total money
+    total_money = saved_money + player.session_money
     
     # Calculate final score
-    final_score = (player.level * 1000) + player.xp + player.money
+    final_score = (player.level * 10) + player.xp
     
     # Update highest score if necessary
     if final_score > current_highest_score:
         current_highest_score = final_score
     
-    # Save both money and highest score
-    save_game_data(player.money, current_highest_score)
+    # Save updated total money and highest score
+    save_game_data(total_money, current_highest_score)
 
     menu = pygame_menu.Menu('Game Over', WIDTH, HEIGHT, theme=pygame_menu.themes.THEME_DARK)
     menu.add.label(f'Level Reached: {player.level}')
     menu.add.label(f'XP Gained: {player.xp}')
-    menu.add.label(f'Money Earned: {player.money}')
+    menu.add.label(f'Session Money: {player.session_money}')
+    menu.add.label(f'Total Money: {total_money}')
     menu.add.label(f'Final Score: {final_score}')
     menu.add.label(f'Highest Score: {current_highest_score}')
     menu.add.button('Replay', replay_callback)
