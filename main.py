@@ -11,8 +11,8 @@ import pygame_menu
 from utils import pause_menu, highest_score_menu
 from maps import Map
 from ui import HealthBar  
-from ui import MoneyDisplay  # Import MoneyDisplay
-from ui import XPBar  # Import XPBar
+from ui import MoneyDisplay  
+from ui import XPBar 
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  
