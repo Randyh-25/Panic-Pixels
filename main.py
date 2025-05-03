@@ -97,12 +97,14 @@ def main():
             for enemy in hit_enemies:
                 enemy.health -= projectile.damage
                 if enemy.health <= 0:
+                    # Start death animation instead of immediately killing
+                    enemy.start_death_animation()
+                    # Create experience object
                     exp = Experience(enemy.rect.centerx, enemy.rect.centery)
                     all_sprites.add(exp)
                     experiences.add(exp)
-                    enemy.kill()
                     player.xp += 10
-                    player.session_money += 10  # Money from killing enemy
+                    player.session_money += 10
 
         # Deteksi tabrakan antara pemain dan musuh
         hits = pygame.sprite.spritecollide(player, enemies, False)
