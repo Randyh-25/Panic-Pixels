@@ -180,6 +180,7 @@ def main():
         for sprite in all_sprites:
             screen.blit(sprite.image, camera.apply(sprite))
 
+
         # Tambahkan render health bar
         health_bar.draw(screen, player.health, player.max_health)
         
