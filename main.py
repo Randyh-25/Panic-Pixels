@@ -180,11 +180,6 @@ def main():
         for sprite in all_sprites:
             screen.blit(sprite.image, camera.apply(sprite))
 
-        # Ganti bagian render health text dengan health bar
-        # Hapus atau comment baris ini:
-        # health_text = font.render(f"Health: {player.health}", True, WHITE)
-        # screen.blit(health_text, (10, 10))
-        
         # Tambahkan render health bar
         health_bar.draw(screen, player.health, player.max_health)
         
