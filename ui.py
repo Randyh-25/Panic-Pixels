@@ -86,7 +86,7 @@ class MoneyDisplay:
         screen.blit(self.icon, (self.x, self.y))
         
         # Load saved money and add current session money
-        saved_money, _ = load_game_data()
+        saved_money, _, _ = load_game_data()  # Unpack all three values, ignore the ones we don't need
         total_money = saved_money + player_session_money
         
         # Draw money amount with border

@@ -13,7 +13,7 @@ class Player(pygame.sprite.Sprite):
         self.speed = 5
         self.max_health = 100
         self.health = self.max_health
-        self.saved_money, _ = load_game_data()  # Load saved money
+        self.saved_money, _, self.name = load_game_data()  # Load player data
         self.session_money = 0  # Money earned in current session
         self.xp = 0
         self.max_xp = 100

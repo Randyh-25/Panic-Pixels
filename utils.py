@@ -1,14 +1,15 @@
 import os
 import pickle
 import pygame_menu
-from settings import WIDTH, HEIGHT, load_font, FONT_PATH
+from settings import WIDTH, HEIGHT, load_font, FONT_PATH, BLACK, WHITE
 
 SAVE_FILE = "game.dat"
 
-def save_game_data(money=0, highest_score=0):
+def save_game_data(money=0, highest_score=0, player_name=""):
     game_data = {
         'money': money,
-        'highest_score': highest_score
+        'highest_score': highest_score,
+        'player_name': player_name
     }
     with open(SAVE_FILE, 'wb') as file:
         pickle.dump(game_data, file)
@@ -17,9 +18,11 @@ def load_game_data():
     try:
         with open(SAVE_FILE, 'rb') as file:
             game_data = pickle.load(file)
-            return game_data['money'], game_data['highest_score']
+            return (game_data['money'], 
+                   game_data['highest_score'],
+                   game_data.get('player_name', ""))  # Use get() with default value
     except (FileNotFoundError, EOFError, KeyError):
-        return 0, 0  # Default values if file doesn't exist or is corrupted
+        return 0, 0, ""  # Return empty string for player_name if file doesn't exist
 
 def pause_menu(screen, main_menu_callback):
     theme = pygame_menu.themes.THEME_DARK.copy()
@@ -33,7 +36,7 @@ def pause_menu(screen, main_menu_callback):
 
 def highest_score_menu(screen, player, main_menu_callback, replay_callback):
     # Load existing data
-    saved_money, current_highest_score = load_game_data()
+    saved_money, current_highest_score, player_name = load_game_data()
     
     # Calculate total money
     total_money = saved_money + player.session_money
@@ -46,7 +49,7 @@ def highest_score_menu(screen, player, main_menu_callback, replay_callback):
         current_highest_score = final_score
     
     # Save updated total money and highest score
-    save_game_data(total_money, current_highest_score)
+    save_game_data(total_money, current_highest_score, player_name)
 
     theme = pygame_menu.themes.THEME_DARK.copy()
     theme.widget_font = FONT_PATH

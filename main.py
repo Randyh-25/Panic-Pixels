@@ -8,7 +8,7 @@ from enemy import Enemy
 from projectile import Projectile
 from experience import Experience
 import pygame_menu
-from utils import pause_menu, highest_score_menu
+from utils import pause_menu, highest_score_menu, load_game_data, save_game_data  # Add imports
 from maps import Map
 from ui import HealthBar  
 from ui import MoneyDisplay  
@@ -266,6 +266,15 @@ def main_menu():
                           min(WIDTH, pygame.display.get_surface().get_width()),
                           min(HEIGHT, pygame.display.get_surface().get_height()),  # Fixed get_height method
                           theme=theme)
+    
+    # Load player data
+    saved_money, highest_score, player_name = load_game_data()
+    
+    # Add player info
+    if player_name:
+        menu.add.label(f"Welcome, {player_name}!")
+        menu.add.label(f"Total Money: {saved_money}")
+    
     menu.add.button('Start', game_mode_menu)
     menu.add.button('Settings', settings_menu)
     menu.add.button('Quit', quit_confirmation)
@@ -282,7 +291,38 @@ def game_mode_menu():
     menu.add.button('Back', main_menu)
     menu.mainloop(screen)
 
+def player_name_screen():
+    theme = pygame_menu.themes.THEME_DARK.copy()
+    theme.widget_font = FONT_PATH
+    theme.title_font = FONT_PATH
+    
+    menu = pygame_menu.Menu(
+        'Welcome to Too Many Pixels', 
+        WIDTH, 
+        HEIGHT,
+        theme=theme
+    )
+    
+    player_name = [""]  # Use list to store name for reference in callback
+    
+    def save_name():
+        if player_name[0].strip():  # Check if name isn't empty
+            save_game_data(0, 0, player_name[0])  # Save initial data with player name
+            main_menu()  # Proceed to main menu
+    
+    def name_changed(value):
+        player_name[0] = value
+    
+    menu.add.label("Please enter your name")
+    menu.add.text_input(' ', default='', onchange=name_changed)
+    menu.add.button('Confirm', save_name)
+    menu.mainloop(screen)
+
 if __name__ == "__main__":
-    # Show splash screen before main menu
     splash_screen()
-    main_menu()
+    # Check if save file exists
+    _, _, player_name = load_game_data()
+    if not player_name:
+        player_name_screen()
+    else:
+        main_menu()
