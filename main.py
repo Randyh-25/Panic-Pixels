@@ -322,7 +322,7 @@ def player_name_screen():
     theme.title_font = FONT_PATH
     
     menu = pygame_menu.Menu(
-        'Welcome to Too Many Pixels', 
+        'Welcome to "Too Many Pixels"', 
         WIDTH, 
         HEIGHT,
         theme=theme
