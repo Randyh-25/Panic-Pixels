@@ -39,12 +39,16 @@ class Player(pygame.sprite.Sprite):
             
         # Try horizontal movement
         self.rect.x += dx
-        if any(self.rect.colliderect(fence) for fence in self.game_map.fence_rects):
+        # Check both fence and tree collisions
+        if (any(self.rect.colliderect(fence) for fence in self.game_map.fence_rects) or
+            any(self.rect.colliderect(tree) for tree in self.game_map.tree_collision_rects)):
             self.rect.x = old_x
             
         # Try vertical movement
         self.rect.y += dy
-        if any(self.rect.colliderect(fence) for fence in self.game_map.fence_rects):
+        # Check both fence and tree collisions
+        if (any(self.rect.colliderect(fence) for fence in self.game_map.fence_rects) or
+            any(self.rect.colliderect(tree) for tree in self.game_map.tree_collision_rects)):
             self.rect.y = old_y
 
 class Camera:

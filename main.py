@@ -2,6 +2,7 @@ import pygame
 import random
 import sys
 import math
+import os
 from settings import *
 from player import Player, Camera
 from enemy import Enemy
@@ -64,7 +65,16 @@ def splash_screen():
         pygame.time.delay(5)
 
 def main():
-    game_map = Map("assets/maps/desert/plain.png")
+    # Update map path to be more explicit
+    map_path = os.path.join("assets", "maps", "desert", "plain.png")
+    
+    # Add error handling for map loading
+    try:
+        game_map = Map(map_path)
+    except Exception as e:
+        print(f"Error loading map: {e}")
+        return
+
     camera = Camera(game_map.width, game_map.height)
 
     all_sprites = pygame.sprite.Group()
