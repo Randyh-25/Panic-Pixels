@@ -8,7 +8,7 @@ from enemy import Enemy
 from projectile import Projectile
 from experience import Experience
 import pygame_menu
-from utils import pause_menu, highest_score_menu, load_game_data, save_game_data  # Add imports
+from utils import pause_menu, highest_score_menu, load_game_data, save_game_data
 from maps import Map
 from ui import HealthBar  
 from ui import MoneyDisplay  
@@ -64,8 +64,7 @@ def splash_screen():
         pygame.time.delay(5)
 
 def main():
-    sound_manager.stop_menu_music()
-    game_map = Map("assets/maps/debugmap.png")
+    game_map = Map("assets/maps/desert/plain.png")
     camera = Camera(game_map.width, game_map.height)
 
     all_sprites = pygame.sprite.Group()
@@ -73,7 +72,20 @@ def main():
     projectiles = pygame.sprite.Group()
     experiences = pygame.sprite.Group()
 
+    # Create player only once
     player = Player()
+    player.game_map = game_map  # Add map reference to player
+    
+    # Set world bounds for the expanded map
+    player.world_bounds = pygame.Rect(
+        0,                  # Left boundary
+        0,                  # Top boundary
+        game_map.width,     # Right boundary (4x original width)
+        game_map.height     # Bottom boundary (4x original height)
+    )
+    
+    # Position player at center of expanded map
+    player.rect.center = (game_map.width // 2, game_map.height // 2)
     all_sprites.add(player)
 
     running = True
@@ -196,6 +208,9 @@ def main():
     sys.exit()
 
 def start_game(mode):
+    # Stop menu music before starting game
+    sound_manager.stop_menu_music()
+    
     if mode == "solo":
         main()  # Start the main game loop
     elif mode == "split_screen":

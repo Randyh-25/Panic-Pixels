@@ -18,33 +18,51 @@ class Player(pygame.sprite.Sprite):
         self.xp = 0
         self.max_xp = 100
         self.level = 1
+        self.world_bounds = None  # Will be set in main.py
 
     def update(self):
+        old_x = self.rect.x
+        old_y = self.rect.y
+        
+        # Get pressed keys and store movement
+        dx = 0
+        dy = 0
         keys = pygame.key.get_pressed()
         if keys[pygame.K_a] or keys[pygame.K_LEFT]:
-            self.rect.x -= self.speed
+            dx -= self.speed
         if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-            self.rect.x += self.speed
+            dx += self.speed
         if keys[pygame.K_w] or keys[pygame.K_UP]:
-            self.rect.y -= self.speed
+            dy -= self.speed
         if keys[pygame.K_s] or keys[pygame.K_DOWN]:
-            self.rect.y += self.speed
+            dy += self.speed
+            
+        # Try horizontal movement
+        self.rect.x += dx
+        if any(self.rect.colliderect(fence) for fence in self.game_map.fence_rects):
+            self.rect.x = old_x
+            
+        # Try vertical movement
+        self.rect.y += dy
+        if any(self.rect.colliderect(fence) for fence in self.game_map.fence_rects):
+            self.rect.y = old_y
 
 class Camera:
-    def __init__(self, width, height):
-        self.camera = pygame.Rect(0, 0, width, height)
-        self.width = width
-        self.height = height
+    def __init__(self, map_width, map_height):
+        self.x = 0
+        self.y = 0
+        self.map_width = map_width
+        self.map_height = map_height
 
     def apply(self, entity):
-        if isinstance(entity, pygame.Rect):
-            return entity.move(self.camera.topleft)
-        return entity.rect.move(self.camera.topleft)
+        # Returns adjusted rectangle position for rendering
+        return entity.rect.move(self.x, self.y)
 
     def update(self, target):
-        x = -target.rect.centerx + WIDTH // 2
-        y = -target.rect.centery + HEIGHT // 2
-        self.camera = pygame.Rect(x, y, self.width, self.height)
-
-    def get_viewport(self):
-        return pygame.Rect(-self.camera.x, -self.camera.y, WIDTH, HEIGHT)
+        # Center the camera on the target (usually the player)
+        self.x = -target.rect.centerx + WIDTH // 2
+        self.y = -target.rect.centery + HEIGHT // 2
+        
+        # Limit scrolling to map boundaries
+        self.x = min(0, max(-(self.map_width - WIDTH), self.x))
+        self.y = min(0, max(-(self.map_height - HEIGHT), self.y))

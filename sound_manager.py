@@ -7,29 +7,25 @@ class SoundManager:
         
         # Load menu music
         self.menu_music = pygame.mixer.Sound("assets/sound/bg/menu.wav")
+        self.menu_music.set_volume(0.5)  # Set default volume
         
         # Load splash sound
         self.splash_sound = pygame.mixer.Sound("assets/sound/spl/spl.wav")
         
         # Track music state
         self.current_music = None
-        self.is_playing = False
         
     def play_menu_music(self):
         if self.current_music != "menu":
-            # Stop any currently playing music
-            pygame.mixer.stop()
-            # Play menu music
+            pygame.mixer.stop()  # Stop any currently playing music
             self.menu_music.play(-1)  # -1 means loop indefinitely
             self.current_music = "menu"
-            self.is_playing = True
     
     def stop_menu_music(self):
         if self.current_music == "menu":
             self.menu_music.stop()
             self.current_music = None
-            self.is_playing = False
-    
+            
     def play_splash_sound(self):
         self.splash_sound.play()
     
