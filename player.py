@@ -34,6 +34,10 @@ class Player(pygame.sprite.Sprite):
         self.death_frame = 0
         self.death_animation_speed = 0.1
         self.death_timer = 0
+        self.was_moving = False  # Track previous movement state
+        self.step_timer = 0
+        self.step_delay = 300  # Milliseconds between footsteps
+        self.last_step_time = 0
         
     def get_movement_direction(self, dx, dy):
         # Determine the animation to play based on movement
@@ -107,6 +111,12 @@ class Player(pygame.sprite.Sprite):
             self.animations.frame_index = (self.animations.frame_index + 1) % len(self.animations.animations[current_anim])
             self.image = self.animations.animations[current_anim][self.animations.frame_index]
 
+    def play_footstep(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_step_time >= self.step_delay:
+            self.sound_manager.play_random_footstep()
+            self.last_step_time = current_time
+
     def update(self):
         # If player is dying, only update death animation
         if self.is_dying:
@@ -128,13 +138,18 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_s] or keys[pygame.K_DOWN]:
             dy += self.speed
             
-        # Normalize diagonal movement
+        
         if dx != 0 and dy != 0:
-            dx *= 0.7071  # 1/√2
+            dx *= 0.7071  # ini pake 1/√2, mohon jangan diganti lee
             dy *= 0.7071
             
-        # Update moving state and facing direction
         self.is_moving = dx != 0 or dy != 0
+        
+        if self.is_moving:
+            self.play_footstep()
+        
+        self.was_moving = self.is_moving
+        
         if self.is_moving:
             self.facing = self.get_movement_direction(dx, dy)
             

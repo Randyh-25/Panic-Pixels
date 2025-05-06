@@ -93,6 +93,7 @@ def main():
     # Create player only once
     player = Player()
     player.game_map = game_map  # Add map reference to player
+    player.sound_manager = sound_manager  # Add sound manager reference
     
     # Set world bounds for the expanded map
     player.world_bounds = pygame.Rect(
