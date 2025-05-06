@@ -17,6 +17,7 @@ from ui import XPBar
 from settings import load_font
 from sound_manager import SoundManager
 from particles import ParticleSystem
+from partner import Partner
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  
@@ -96,6 +97,11 @@ def main():
     player.game_map = game_map  # Add map reference to player
     player.sound_manager = sound_manager  # Add sound manager reference
     
+    # Create partner and add to sprites
+    partner = Partner(player)
+    all_sprites.add(player)
+    all_sprites.add(partner)
+    
     # Set world bounds for the expanded map
     player.world_bounds = pygame.Rect(
         0,                  # Left boundary
@@ -107,6 +113,16 @@ def main():
     # Position player at center of expanded map
     player.rect.center = (game_map.width // 2, game_map.height // 2)
     all_sprites.add(player)
+
+    # Object pooling untuk projectiles
+    MAX_PROJECTILES = 20
+    projectile_pool = []
+    for _ in range(MAX_PROJECTILES):
+        projectile = Projectile((0,0), (0,0))
+        projectile_pool.append(projectile)
+        all_sprites.add(projectile)
+        projectiles.add(projectile)
+        projectile.kill()  # Deactivate initially
 
     running = True
     paused = False
@@ -128,16 +144,16 @@ def main():
     # Create particle system with more initial particles
     particle_system = ParticleSystem(WIDTH, HEIGHT)
     
-    # Spawn initial particles
-    for _ in range(50):  # Start with 50 particles
+    # Kurangi jumlah partikel awal
+    for _ in range(25):  # Kurangi dari 50 menjadi 25
         x = random.randint(0, WIDTH)
         y = random.randint(0, HEIGHT)
         particle_system.create_particle(x, y)
     
     # Particle spawn settings
     particle_spawn_timer = 0
-    PARTICLE_SPAWN_RATE = 1  # Spawn more frequently (every frame)
-    PARTICLES_PER_SPAWN = 5  # Spawn more particles at once
+    PARTICLE_SPAWN_RATE = 3  # Tingkatkan dari 1 ke 3 (lebih jarang spawn)
+    PARTICLES_PER_SPAWN = 2  # Kurangi dari 5 ke 2
     
     while running:
         dt = clock.tick(FPS) / 1000.0  # Convert to seconds
@@ -145,7 +161,7 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 paused = True
                 pause_menu(screen, main_menu)  # Show pause menu
                 paused = False
@@ -155,8 +171,8 @@ def main():
 
         # Update logika permainan
         enemy_spawn_timer += 1
-        if enemy_spawn_timer >= 60:
-            # Spawn musuh di sekitar pemain
+        MAX_ENEMIES = 15  # Batasi jumlah maksimum musuh
+        if enemy_spawn_timer >= 60 and len(enemies) < MAX_ENEMIES:
             enemy = Enemy((player.rect.centerx, player.rect.centery))
             all_sprites.add(enemy)
             enemies.add(enemy)
@@ -167,24 +183,29 @@ def main():
             closest_enemy = None
             min_dist = float('inf')
             
-            # Cari musuh terdekat tanpa batasan jarak
+            # Cari musuh terdekat dalam radius tertentu
+            shoot_radius = 500  # Radius tembak dalam pixel
             for enemy in enemies:
                 dist = math.hypot(enemy.rect.centerx - player.rect.centerx,
                               enemy.rect.centery - player.rect.centery)
-                if dist < min_dist:
+                if dist < min_dist and dist < shoot_radius:
                     min_dist = dist
                     closest_enemy = enemy
 
-            # Selalu tembak jika ada musuh
+            # Gunakan projectile dari pool
             if closest_enemy:
-                # Create projectile
-                projectile = Projectile(player.rect.centerx, player.rect.centery,
-                                    closest_enemy.rect.centerx, closest_enemy.rect.centery)
-                all_sprites.add(projectile)
-                projectiles.add(projectile)
-                projectile_timer = 0
+                # Cari projectile yang tidak aktif
+                for projectile in projectile_pool:
+                    if not projectile.alive():
+                        start_pos = partner.get_shooting_position()
+                        target_pos = (closest_enemy.rect.centerx, closest_enemy.rect.centery)
+                        projectile.reset(start_pos, target_pos)  # Reset posisi dan aktifkan
+                        projectile.add(all_sprites, projectiles)
+                        projectile_timer = 0
+                        break
 
         player.update()
+        partner.update(dt)
 
         for enemy in enemies:
             enemy.update(player)

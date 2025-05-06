@@ -41,26 +41,26 @@ class ParticleSystem:
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.particle_surface = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
+        self.max_particles = 50  # Batasi jumlah maksimum partikel
         
     def create_particle(self, x, y):
-        self.particles.append(DustParticle(x, y, self.screen_width, self.screen_height))
-        
+        if len(self.particles) < self.max_particles:
+            self.particles.append(DustParticle(x, y, self.screen_width, self.screen_height))
+            
     def update(self, camera_x, camera_y):
-        # Update each particle
+        # Update hanya partikel yang terlihat di layar
+        screen_rect = pygame.Rect(-camera_x, -camera_y, self.screen_width, self.screen_height)
+        
         for particle in self.particles[:]:
-            # Move particle
-            particle.x += particle.dx
-            particle.y += particle.dy
-            
-            # Update lifetime
-            particle.lifetime -= 1
-            
-            # Update alpha based on lifetime
-            particle.alpha = int((particle.lifetime / particle.max_lifetime) * 100)
-            
-            # Remove dead particles
-            if particle.lifetime <= 0:
-                self.particles.remove(particle)
+            if screen_rect.collidepoint(particle.x, particle.y):
+                particle.x += particle.dx
+                particle.y += particle.dy
+                particle.lifetime -= 1
+                
+                if particle.lifetime <= 0:
+                    self.particles.remove(particle)
+                else:
+                    particle.alpha = int((particle.lifetime / particle.max_lifetime) * 100)
                 
             # Wrap particles around screen
             particle.x = (particle.x + self.screen_width) % self.screen_width
