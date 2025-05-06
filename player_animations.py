@@ -12,7 +12,8 @@ class PlayerAnimations:
             'idle_left': [], 'walk_left': [],
             'idle_up': [], 'walk_up': [],
             'idle_up_right': [], 'walk_up_right': [],
-            'idle_up_left': [], 'walk_up_left': []
+            'idle_up_left': [], 'walk_up_left': [],
+            'death': []
         }
         
         # Animation frames configuration
@@ -26,12 +27,29 @@ class PlayerAnimations:
             'idle_up': {'count': 6, 'prefix': 'idle', 'dir': 'up'},
             'walk_up': {'count': 8, 'prefix': 'walk', 'dir': 'up'},
             'idle_up_right': {'count': 6, 'prefix': 'idle', 'dir': 'up-right'},
-            'walk_up_right': {'count': 8, 'prefix': 'walk', 'dir': 'up-right'}
+            'walk_up_right': {'count': 8, 'prefix': 'walk', 'dir': 'up-right'},
+            'death': {'count': 14, 'prefix': 'death', 'dir': 'death'}
         }
         
         # Load all animations
         for anim_name, config in self.animation_config.items():
             directory = config['dir']
+            
+            # Special handling for death animation
+            if anim_name == 'death':
+                for i in range(1, config['count'] + 1):
+                    image_path = os.path.join('assets', 'player', 'cowboy', 'death', 
+                                            f"{config['prefix']} ({i}).png")
+                    try:
+                        image = pygame.image.load(image_path).convert_alpha()
+                        image = pygame.transform.scale(image, (64, 64))
+                        self.animations['death'].append(image)
+                    except pygame.error as e:
+                        print(f"Couldn't load death animation: {image_path}")
+                        print(e)
+                continue
+                
+            # Load regular animations
             for i in range(1, config['count'] + 1):
                 image_path = os.path.join('assets', 'player', 'cowboy', directory, 
                                         f"{config['prefix']} ({i}).png")

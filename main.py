@@ -64,6 +64,14 @@ def splash_screen():
         pygame.display.flip()
         pygame.time.delay(5)
 
+def create_blur_surface(surface):
+    # Create a simple blur effect
+    scale = 0.25
+    small_surface = pygame.transform.scale(surface, 
+        (int(surface.get_width() * scale), int(surface.get_height() * scale)))
+    return pygame.transform.scale(small_surface, 
+        (surface.get_width(), surface.get_height()))
+
 def main():
     # Update map path to be more explicit
     map_path = os.path.join("assets", "maps", "desert", "plain.png")
@@ -107,8 +115,16 @@ def main():
     money_display = MoneyDisplay()  # Tambahkan money display
     xp_bar = XPBar(WIDTH, HEIGHT)  # Add XP bar
 
+    # Modify death transition variables
+    death_transition = False
+    death_alpha = 0
+    blur_surface = None
+    FADE_SPEED = 15  
+    TRANSITION_DELAY = 5  
+    transition_timer = 0
+    
     while running:
-        clock.tick(FPS)
+        dt = clock.tick(FPS) / 1000.0  # Convert to seconds
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -174,44 +190,77 @@ def main():
                     player.session_money += 10
 
         # Deteksi tabrakan antara pemain dan musuh
-        hits = pygame.sprite.spritecollide(player, enemies, False)
-        for enemy in hits:
-            player.health -= 1
-            if player.health <= 0:
-                highest_score_menu(screen, player, main_menu, main)  # Pass the entire player object
-                return
+        if not death_transition:
+            hits = pygame.sprite.spritecollide(player, enemies, False)
+            for enemy in hits:
+                player.health -= 1
+                if player.health <= 0:
+                    player.start_death_animation()
+                    death_transition = True
+                    # Create blur surface from current game state
+                    blur_surface = create_blur_surface(screen.copy())
+                    break
 
-        # Deteksi tabrakan antara pemain dan experience
-        hits = pygame.sprite.spritecollide(player, experiences, True)  # True untuk menghapus experience
-        for exp in hits:
-            player.xp += 5
-            player.session_money += 5  # Money from collecting experience
+        if death_transition:
+            # Update death animation
+            animation_finished = player.update_death_animation(dt)
             
-            # Level up check
-            if player.xp >= player.max_xp:
-                player.level += 1
-                player.xp -= player.max_xp
-                player.max_xp = int(player.max_xp * 1.2)  # Increase XP needed for next level
+            # Draw game state with blur
+            screen.blit(blur_surface, (0, 0))
+            
+            # Draw player death animation
+            screen.blit(player.image, camera.apply(player))
+            
+            # Create fade overlay
+            fade_surface = pygame.Surface((WIDTH, HEIGHT))
+            fade_surface.fill((0, 0, 0))
+            
+            if animation_finished:
+                # Faster fade out
+                death_alpha = min(death_alpha + FADE_SPEED, 255)
+                
+                if death_alpha >= 255:
+                    transition_timer += 1
+                    if transition_timer >= TRANSITION_DELAY:
+                        # Transition to score menu
+                        highest_score_menu(screen, player, main_menu, main)
+                        return
+            
+            fade_surface.set_alpha(death_alpha)
+            screen.blit(fade_surface, (0, 0))
+            
+        else:
+            # Deteksi tabrakan antara pemain dan experience
+            hits = pygame.sprite.spritecollide(player, experiences, True)  # True untuk menghapus experience
+            for exp in hits:
+                player.xp += 5
+                player.session_money += 5  # Money from collecting experience
+                
+                # Level up check
+                if player.xp >= player.max_xp:
+                    player.level += 1
+                    player.xp -= player.max_xp
+                    player.max_xp = int(player.max_xp * 1.2)  # Increase XP needed for next level
 
-        # Update kamera
-        camera.update(player)
+            # Update kamera
+            camera.update(player)
 
-        # Tampilkan latar belakang
-        game_map.draw(screen, camera)
+            # Tampilkan latar belakang
+            game_map.draw(screen, camera)
 
-        # Gambar semua sprite dengan kamera
-        for sprite in all_sprites:
-            screen.blit(sprite.image, camera.apply(sprite))
+            # Gambar semua sprite dengan kamera
+            for sprite in all_sprites:
+                screen.blit(sprite.image, camera.apply(sprite))
 
 
-        # Tambahkan render health bar
-        health_bar.draw(screen, player.health, player.max_health)
-        
-        # Tambahkan tampilan money
-        money_display.draw(screen, player.session_money)
-        
-        # Draw XP bar last so it's always on top
-        xp_bar.draw(screen, player.xp, player.max_xp, player.level)
+            # Tambahkan render health bar
+            health_bar.draw(screen, player.health, player.max_health)
+            
+            # Tambahkan tampilan money
+            money_display.draw(screen, player.session_money)
+            
+            # Draw XP bar last so it's always on top
+            xp_bar.draw(screen, player.xp, player.max_xp, player.level)
         
         pygame.display.flip()
 

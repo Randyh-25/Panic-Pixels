@@ -30,6 +30,11 @@ class Player(pygame.sprite.Sprite):
         self.is_moving = False
         self.last_direction = 'down'  # Tracks last movement direction for idle state
         
+        self.is_dying = False
+        self.death_frame = 0
+        self.death_animation_speed = 0.1
+        self.death_timer = 0
+        
     def get_movement_direction(self, dx, dy):
         # Determine the animation to play based on movement
         if dx > 0:  # Moving right
@@ -65,7 +70,28 @@ class Player(pygame.sprite.Sprite):
         # Return appropriate idle animation based on last movement direction
         return f'idle_{self.last_direction}'
         
+    def start_death_animation(self):
+        self.is_dying = True
+        self.death_frame = 0
+        self.death_timer = 0
+        
+    def update_death_animation(self, dt):
+        if not self.is_dying:
+            return False
+            
+        self.death_timer += dt
+        if self.death_timer >= self.death_animation_speed:
+            self.death_timer = 0
+            self.death_frame += 1
+            if self.death_frame < len(self.animations.animations['death']):
+                self.image = self.animations.animations['death'][self.death_frame]
+                return False
+            return True
+        return False
+        
     def animate(self, dt):
+        if self.is_dying:
+            return self.update_death_animation(dt)
         # Update animation timer
         self.animations.animation_timer += dt
         
@@ -82,6 +108,10 @@ class Player(pygame.sprite.Sprite):
             self.image = self.animations.animations[current_anim][self.animations.frame_index]
 
     def update(self):
+        # If player is dying, only update death animation
+        if self.is_dying:
+            return
+            
         old_x = self.rect.x
         old_y = self.rect.y
         
