@@ -212,6 +212,9 @@ def main():
 
         projectiles.update()
 
+        # Tambahkan update untuk experiences
+        experiences.update()
+
         # Deteksi tabrakan antara proyektil dan musuh
         hits = pygame.sprite.groupcollide(projectiles, enemies, True, False)
         for projectile, hit_enemies in hits.items():
@@ -268,7 +271,7 @@ def main():
             
         else:
             # Deteksi tabrakan antara pemain dan experience
-            hits = pygame.sprite.spritecollide(player, experiences, True)  # True untuk menghapus experience
+            hits = pygame.sprite.spritecollide(player, experiences, True)
             for exp in hits:
                 player.xp += 5
                 player.session_money += 5  # Money from collecting experience
