@@ -145,6 +145,7 @@ def main():
 
             # Selalu tembak jika ada musuh
             if closest_enemy:
+                # Create projectile
                 projectile = Projectile(player.rect.centerx, player.rect.centery,
                                     closest_enemy.rect.centerx, closest_enemy.rect.centery)
                 all_sprites.add(projectile)
