@@ -16,6 +16,7 @@ from ui import MoneyDisplay
 from ui import XPBar 
 from settings import load_font
 from sound_manager import SoundManager
+from particles import ParticleSystem
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  
@@ -123,6 +124,20 @@ def main():
     FADE_SPEED = 15  
     TRANSITION_DELAY = 5  
     transition_timer = 0
+    
+    # Create particle system with more initial particles
+    particle_system = ParticleSystem(WIDTH, HEIGHT)
+    
+    # Spawn initial particles
+    for _ in range(50):  # Start with 50 particles
+        x = random.randint(0, WIDTH)
+        y = random.randint(0, HEIGHT)
+        particle_system.create_particle(x, y)
+    
+    # Particle spawn settings
+    particle_spawn_timer = 0
+    PARTICLE_SPAWN_RATE = 1  # Spawn more frequently (every frame)
+    PARTICLES_PER_SPAWN = 5  # Spawn more particles at once
     
     while running:
         dt = clock.tick(FPS) / 1000.0  # Convert to seconds
@@ -249,10 +264,27 @@ def main():
             # Tampilkan latar belakang
             game_map.draw(screen, camera)
 
-            # Gambar semua sprite dengan kamera
+            # Update particle system
+            particle_spawn_timer += 1
+            if particle_spawn_timer >= PARTICLE_SPAWN_RATE:
+                # Spawn new particles across the screen
+                for _ in range(PARTICLES_PER_SPAWN):
+                    x = random.randint(0, WIDTH)
+                    y = random.randint(0, HEIGHT)
+                    particle_system.create_particle(x, y)
+                particle_spawn_timer = 0
+                
+            particle_system.update(camera.x, camera.y)
+            
+            # Draw game elements in order
+            game_map.draw(screen, camera)
+            
+            # Draw particles before sprites but after map
+            particle_system.draw(screen, camera)
+            
+            # Draw sprites
             for sprite in all_sprites:
                 screen.blit(sprite.image, camera.apply(sprite))
-
 
             # Tambahkan render health bar
             health_bar.draw(screen, player.health, player.max_health)
