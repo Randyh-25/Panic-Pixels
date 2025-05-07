@@ -34,7 +34,7 @@ def splash_screen():
     title_font = load_font(72)
     studio_font = load_font(36)
     title_text = title_font.render("Too Many Pixels", True, WHITE)
-    studio_text = studio_font.render("Tubes PBO", True, WHITE)
+    studio_text = studio_font.render("D'King Studio", True, WHITE)
     
     # Position text in center
     title_rect = title_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
