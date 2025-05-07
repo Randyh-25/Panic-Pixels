@@ -7,7 +7,7 @@ from settings import *
 from player import Player, Camera
 from enemy import Enemy
 from projectile import Projectile
-from experience import Experience
+from experience import Experience, LevelUpEffect
 import pygame_menu
 from utils import pause_menu, highest_score_menu, load_game_data, save_game_data
 from maps import Map
@@ -91,6 +91,7 @@ def main():
     enemies = pygame.sprite.Group()
     projectiles = pygame.sprite.Group()
     experiences = pygame.sprite.Group()
+    effects = pygame.sprite.Group()  # Tambahkan sprite group untuk effects
 
     # Create player only once
     player = Player()
@@ -214,6 +215,7 @@ def main():
 
         # Tambahkan update untuk experiences
         experiences.update()
+        effects.update(dt)  # Tambahkan update untuk effects
 
         # Deteksi tabrakan antara proyektil dan musuh
         hits = pygame.sprite.groupcollide(projectiles, enemies, True, False)
@@ -281,6 +283,11 @@ def main():
                     player.level += 1
                     player.xp -= player.max_xp
                     player.max_xp = int(player.max_xp * 1.2)  # Increase XP needed for next level
+                    
+                    # Create level up effect
+                    level_effect = LevelUpEffect(player)
+                    effects.add(level_effect)
+                    all_sprites.add(level_effect)
 
             # Update kamera
             camera.update(player)
