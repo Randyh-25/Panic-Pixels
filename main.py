@@ -11,9 +11,7 @@ from experience import Experience, LevelUpEffect
 import pygame_menu
 from utils import pause_menu, highest_score_menu, load_game_data, save_game_data
 from maps import Map
-from ui import HealthBar  
-from ui import MoneyDisplay  
-from ui import XPBar 
+from ui import HealthBar, MoneyDisplay, XPBar 
 from settings import load_font
 from sound_manager import SoundManager
 from particles import ParticleSystem
@@ -26,25 +24,20 @@ clock = pygame.time.Clock()
 sound_manager = SoundManager()
 
 def splash_screen():
-    # Create a surface for fading
     fade_surface = pygame.Surface((WIDTH, HEIGHT))
     fade_surface.fill(BLACK)
     
-    # Create text for logo
     title_font = load_font(72)
     studio_font = load_font(36)
     title_text = title_font.render("Too Many Pixels", True, WHITE)
     studio_text = studio_font.render("D'King Studio", True, WHITE)
     
-    # Position text in center
     title_rect = title_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
     studio_rect = studio_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 50))
     
-    # Play splash sound at the start
     sound_manager.play_splash_sound()
     
-    # Fade in
-    for alpha in range(255, 0, -5):  # 255 to 0 for fade in
+    for alpha in range(255, 0, -5):  # 255 - 0
         screen.fill(BLACK)
         fade_surface.set_alpha(alpha)
         screen.blit(title_text, title_rect)
@@ -53,11 +46,9 @@ def splash_screen():
         pygame.display.flip()
         pygame.time.delay(5)
     
-    # Hold the screen
-    pygame.time.delay(2000)  # Show splash for 2 seconds
+    pygame.time.delay(2000)  # Splash
     
-    # Fade out
-    for alpha in range(0, 255, 5):  # 0 to 255 for fade out
+    for alpha in range(0, 255, 5):  # 0 - 255
         screen.fill(BLACK)
         fade_surface.set_alpha(alpha)
         screen.blit(title_text, title_rect)
@@ -67,7 +58,6 @@ def splash_screen():
         pygame.time.delay(5)
 
 def create_blur_surface(surface):
-    # Create a simple blur effect
     scale = 0.25
     small_surface = pygame.transform.scale(surface, 
         (int(surface.get_width() * scale), int(surface.get_height() * scale)))
@@ -75,10 +65,8 @@ def create_blur_surface(surface):
         (surface.get_width(), surface.get_height()))
 
 def main():
-    # Update map path to be more explicit
     map_path = os.path.join("assets", "maps", "desert", "plain.png")
     
-    # Add error handling for map loading
     try:
         game_map = Map(map_path)
     except Exception as e:
@@ -91,7 +79,7 @@ def main():
     enemies = pygame.sprite.Group()
     projectiles = pygame.sprite.Group()
     experiences = pygame.sprite.Group()
-    effects = pygame.sprite.Group()  # Tambahkan sprite group untuk effects
+    effects = pygame.sprite.Group()  
 
     # Create player only once
     player = Player()
