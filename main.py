@@ -200,10 +200,17 @@ def main():
                     if not projectile.alive():
                         start_pos = partner.get_shooting_position()
                         target_pos = (closest_enemy.rect.centerx, closest_enemy.rect.centery)
+                        
+                        # Update partner shooting direction
+                        partner.shoot_at(target_pos)
+                        
                         projectile.reset(start_pos, target_pos)  # Reset posisi dan aktifkan
                         projectile.add(all_sprites, projectiles)
                         projectile_timer = 0
                         break
+            else:
+                # No enemies in range, stop shooting
+                partner.stop_shooting()
 
         player.update()
         partner.update(dt)

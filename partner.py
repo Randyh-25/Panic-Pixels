@@ -50,24 +50,39 @@ class Partner(pygame.sprite.Sprite):
         # Update initial position
         self.update_position()
         
+        # Tambahkan variabel untuk tracking status menembak
+        self.is_shooting = False
+        self.shooting_direction = 'right'  # Default shooting direction
+        
     def update_position(self):
         self.rect.centerx = self.player.rect.centerx + math.cos(math.radians(self.angle)) * self.orbit_radius
         self.rect.centery = self.player.rect.centery + math.sin(math.radians(self.angle)) * self.orbit_radius
         
     def animate(self, dt):
-        # Check player direction
-        if 'left' in self.player.facing:
-            self.frames = self.left_frames
-        else:
-            self.frames = self.eagle_frames
-            
         # Update animation timer
         self.animation_timer += dt
         if self.animation_timer >= self.animation_speed:
             self.animation_timer = 0
             self.frame_index = (self.frame_index + 1) % len(self.frames)
-            self.image = self.frames[self.frame_index]
             
+            # Select appropriate frames based on shooting status and direction
+            if self.is_shooting:
+                # Use shooting direction while shooting
+                self.frames = self.left_frames if self.shooting_direction == 'left' else self.eagle_frames
+            else:
+                # Follow player direction when not shooting
+                self.frames = self.left_frames if 'left' in self.player.facing else self.eagle_frames
+                
+            self.image = self.frames[self.frame_index]
+
+    def shoot_at(self, target_pos):
+        # Determine shooting direction based on target position
+        self.is_shooting = True
+        self.shooting_direction = 'left' if target_pos[0] < self.rect.centerx else 'right'
+        
+    def stop_shooting(self):
+        self.is_shooting = False
+        
     def update(self, dt):
         # Update rotation angle
         self.angle = (self.angle + self.orbit_speed) % 360
