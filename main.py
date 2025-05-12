@@ -216,10 +216,8 @@ def main():
         hits = pygame.sprite.groupcollide(projectiles, enemies, True, False)
         for projectile, hit_enemies in hits.items():
             for enemy in hit_enemies:
-                enemy.health -= projectile.damage
+                enemy.take_hit(projectile.damage)  # Use new take_hit method
                 if enemy.health <= 0:
-                    # Start death animation instead of immediately killing
-                    enemy.start_death_animation()
                     # Create experience object
                     exp = Experience(enemy.rect.centerx, enemy.rect.centery)
                     all_sprites.add(exp)
