@@ -9,6 +9,18 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, player_pos):
         super().__init__()
         
+        # Load shadow sprite
+        try:
+            self.shadow = pygame.image.load("assets/shadow.png").convert_alpha()
+            # Scale shadow to match enemy size (slightly smaller than enemy)
+            shadow_size = (100, 50)  # Adjust shadow size to be oval shaped
+            self.shadow = pygame.transform.scale(self.shadow, shadow_size)
+            # Create shadow offset
+            self.shadow_offset_y = -20  # Adjust this value to position the shadow
+        except pygame.error as e:
+            print(f"Error loading shadow sprite: {e}")
+            self.shadow = None
+
         # Load walking animation frames
         self.walk_frames = []
         for i in range(8):  # Load fly0.png through fly7.png
@@ -184,7 +196,7 @@ class Enemy(pygame.sprite.Sprite):
         if self.is_dying:
             self.animate(1/60)
             return
-            
+
         # Calculate direction to player
         to_player = pygame.math.Vector2(
             player.rect.centerx - self.rect.centerx,
@@ -218,3 +230,18 @@ class Enemy(pygame.sprite.Sprite):
         
         # Update animation
         self.animate(1/60)
+
+    def draw(self, surface, camera_pos):
+        # Draw shadow first (beneath the enemy)
+        if self.shadow:
+            shadow_pos = (
+                self.rect.centerx - self.shadow.get_width() // 2 + camera_pos[0],
+                self.rect.bottom - self.shadow.get_height() // 2 + camera_pos[1] + self.shadow_offset_y
+            )
+            surface.blit(self.shadow, shadow_pos)
+        
+        # Draw enemy
+        surface.blit(self.image, (
+            self.rect.x + camera_pos[0],
+            self.rect.y + camera_pos[1]
+        ))

@@ -308,7 +308,10 @@ def main():
             
             # Draw sprites
             for sprite in all_sprites:
-                screen.blit(sprite.image, camera.apply(sprite))
+                if isinstance(sprite, Enemy):
+                    sprite.draw(screen, (camera.x, camera.y))
+                else:
+                    screen.blit(sprite.image, camera.apply(sprite))
 
             # Tambahkan render health bar
             health_bar.draw(screen, player.health, player.max_health)
