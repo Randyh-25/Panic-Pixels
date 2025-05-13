@@ -37,7 +37,7 @@ def splash_screen():
     
     sound_manager.play_splash_sound()
     
-    for alpha in range(255, 0, -5):  # 255 - 0
+    for alpha in range(255, 0, -5):
         screen.fill(BLACK)
         fade_surface.set_alpha(alpha)
         screen.blit(title_text, title_rect)
@@ -46,9 +46,9 @@ def splash_screen():
         pygame.display.flip()
         pygame.time.delay(5)
     
-    pygame.time.delay(2000)  # Splash
+    pygame.time.delay(2000)
     
-    for alpha in range(0, 255, 5):  # 0 - 255
+    for alpha in range(0, 255, 5):
         screen.fill(BLACK)
         fade_surface.set_alpha(alpha)
         screen.blit(title_text, title_rect)
@@ -81,29 +81,24 @@ def main():
     experiences = pygame.sprite.Group()
     effects = pygame.sprite.Group()  
 
-    # Create player only once
     player = Player()
-    player.game_map = game_map  # Add map reference to player
-    player.sound_manager = sound_manager  # Add sound manager reference
+    player.game_map = game_map
+    player.sound_manager = sound_manager
     
-    # Create partner and add to sprites
     partner = Partner(player)
     all_sprites.add(player)
     all_sprites.add(partner)
     
-    # Set world bounds for the expanded map
     player.world_bounds = pygame.Rect(
-        0,                  # Left boundary
-        0,                  # Top boundary
-        game_map.width,     # Right boundary (4x original width)
-        game_map.height     # Bottom boundary (4x original height)
+        0,
+        0,
+        game_map.width,
+        game_map.height
     )
     
-    # Position player at center of expanded map
     player.rect.center = (game_map.width // 2, game_map.height // 2)
     all_sprites.add(player)
 
-    # Object pooling untuk projectiles
     MAX_PROJECTILES = 20
     projectile_pool = []
     for _ in range(MAX_PROJECTILES):
@@ -111,18 +106,17 @@ def main():
         projectile_pool.append(projectile)
         all_sprites.add(projectile)
         projectiles.add(projectile)
-        projectile.kill()  # Deactivate initially
+        projectile.kill()
 
     running = True
     paused = False
     enemy_spawn_timer = 0
     projectile_timer = 0
-    font = load_font(36)  # Replace SysFont with custom font
+    font = load_font(36)
     health_bar = HealthBar()
-    money_display = MoneyDisplay()  # Tambahkan money display
-    xp_bar = XPBar(WIDTH, HEIGHT)  # Add XP bar
+    money_display = MoneyDisplay()
+    xp_bar = XPBar(WIDTH, HEIGHT)
 
-    # Modify death transition variables
     death_transition = False
     death_alpha = 0
     blur_surface = None
@@ -130,37 +124,33 @@ def main():
     TRANSITION_DELAY = 5  
     transition_timer = 0
     
-    # Create particle system with more initial particles
     particle_system = ParticleSystem(WIDTH, HEIGHT)
     
-    # Kurangi jumlah partikel awal
-    for _ in range(25):  # Kurangi dari 50 menjadi 25
+    for _ in range(25):
         x = random.randint(0, WIDTH)
         y = random.randint(0, HEIGHT)
         particle_system.create_particle(x, y)
     
-    # Particle spawn settings
     particle_spawn_timer = 0
-    PARTICLE_SPAWN_RATE = 3  # Tingkatkan dari 1 ke 3 (lebih jarang spawn)
-    PARTICLES_PER_SPAWN = 2  # Kurangi dari 5 ke 2
+    PARTICLE_SPAWN_RATE = 3
+    PARTICLES_PER_SPAWN = 2
     
     while running:
-        dt = clock.tick(FPS) / 1000.0  # Convert to seconds
+        dt = clock.tick(FPS) / 1000.0
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 paused = True
-                pause_menu(screen, main_menu)  # Show pause menu
+                pause_menu(screen, main_menu)
                 paused = False
 
         if paused:
             continue
 
-        # Update logika permainan
         enemy_spawn_timer += 1
-        MAX_ENEMIES = 15  # Batasi jumlah maksimum musuh
+        MAX_ENEMIES = 15
         if enemy_spawn_timer >= 60 and len(enemies) < MAX_ENEMIES:
             enemy = Enemy((player.rect.centerx, player.rect.centery))
             all_sprites.add(enemy)
@@ -168,12 +158,11 @@ def main():
             enemy_spawn_timer = 0
 
         projectile_timer += 1
-        if projectile_timer >= 30 and len(enemies) > 0:  # Pastikan ada musuh
+        if projectile_timer >= 30 and len(enemies) > 0:
             closest_enemy = None
             min_dist = float('inf')
             
-            # Cari musuh terdekat dalam radius tertentu
-            shoot_radius = 500  # Radius tembak dalam pixel
+            shoot_radius = 500
             for enemy in enemies:
                 dist = math.hypot(enemy.rect.centerx - player.rect.centerx,
                               enemy.rect.centery - player.rect.centery)
@@ -181,23 +170,19 @@ def main():
                     min_dist = dist
                     closest_enemy = enemy
 
-            # Gunakan projectile dari pool
             if closest_enemy:
-                # Cari projectile yang tidak aktif
                 for projectile in projectile_pool:
                     if not projectile.alive():
                         start_pos = partner.get_shooting_position()
                         target_pos = (closest_enemy.rect.centerx, closest_enemy.rect.centery)
                         
-                        # Update partner shooting direction
                         partner.shoot_at(target_pos)
                         
-                        projectile.reset(start_pos, target_pos)  # Reset posisi dan aktifkan
+                        projectile.reset(start_pos, target_pos)
                         projectile.add(all_sprites, projectiles)
                         projectile_timer = 0
                         break
             else:
-                # No enemies in range, stop shooting
                 partner.stop_shooting()
 
         player.update()
@@ -208,23 +193,19 @@ def main():
 
         projectiles.update()
 
-        # Tambahkan update untuk experiences
         experiences.update()
-        effects.update(dt)  # Tambahkan update untuk effects
+        effects.update(dt)
 
-        # Deteksi tabrakan antara proyektil dan musuh
         hits = pygame.sprite.groupcollide(projectiles, enemies, True, False)
         for projectile, hit_enemies in hits.items():
             for enemy in hit_enemies:
-                enemy.take_hit(projectile.damage)  # Use new take_hit method
+                enemy.take_hit(projectile.damage)
                 if enemy.health <= 0:
-                    # Create experience object
                     exp = Experience(enemy.rect.centerx, enemy.rect.centery)
                     all_sprites.add(exp)
                     experiences.add(exp)
                     player.session_money += 10
 
-        # Deteksi tabrakan antara pemain dan musuh
         if not death_transition:
             hits = pygame.sprite.spritecollide(player, enemies, False)
             for enemy in hits:
@@ -232,32 +213,25 @@ def main():
                 if player.health <= 0:
                     player.start_death_animation()
                     death_transition = True
-                    # Create blur surface from current game state
                     blur_surface = create_blur_surface(screen.copy())
                     break
 
         if death_transition:
-            # Update death animation
             animation_finished = player.update_death_animation(dt)
             
-            # Draw game state with blur
             screen.blit(blur_surface, (0, 0))
             
-            # Draw player death animation
             screen.blit(player.image, camera.apply(player))
             
-            # Create fade overlay
             fade_surface = pygame.Surface((WIDTH, HEIGHT))
             fade_surface.fill((0, 0, 0))
             
             if animation_finished:
-                # Faster fade out
                 death_alpha = min(death_alpha + FADE_SPEED, 255)
                 
                 if death_alpha >= 255:
                     transition_timer += 1
                     if transition_timer >= TRANSITION_DELAY:
-                        # Transition to score menu
                         highest_score_menu(screen, player, main_menu, main)
                         return
             
@@ -265,33 +239,26 @@ def main():
             screen.blit(fade_surface, (0, 0))
             
         else:
-            # Deteksi tabrakan antara pemain dan experience
             hits = pygame.sprite.spritecollide(player, experiences, True)
             for exp in hits:
                 player.xp += 5
-                player.session_money += 5  # Money from collecting experience
+                player.session_money += 5
                 
-                # Level up check
                 if player.xp >= player.max_xp:
                     player.level += 1
                     player.xp -= player.max_xp
-                    player.max_xp = int(player.max_xp * 1.2)  # Increase XP needed for next level
+                    player.max_xp = int(player.max_xp * 1.2)
                     
-                    # Create level up effect
                     level_effect = LevelUpEffect(player)
                     effects.add(level_effect)
                     all_sprites.add(level_effect)
 
-            # Update kamera
             camera.update(player)
 
-            # Tampilkan latar belakang
             game_map.draw(screen, camera)
 
-            # Update particle system
             particle_spawn_timer += 1
             if particle_spawn_timer >= PARTICLE_SPAWN_RATE:
-                # Spawn new particles across the screen
                 for _ in range(PARTICLES_PER_SPAWN):
                     x = random.randint(0, WIDTH)
                     y = random.randint(0, HEIGHT)
@@ -300,26 +267,20 @@ def main():
                 
             particle_system.update(camera.x, camera.y)
             
-            # Draw game elements in order
             game_map.draw(screen, camera)
             
-            # Draw particles before sprites but after map
             particle_system.draw(screen, camera)
             
-            # Draw sprites
             for sprite in all_sprites:
                 if isinstance(sprite, Enemy):
                     sprite.draw(screen, (camera.x, camera.y))
                 else:
                     screen.blit(sprite.image, camera.apply(sprite))
 
-            # Tambahkan render health bar
             health_bar.draw(screen, player.health, player.max_health)
             
-            # Tambahkan tampilan money
             money_display.draw(screen, player.session_money)
             
-            # Draw XP bar last so it's always on top
             xp_bar.draw(screen, player.xp, player.max_xp, player.level)
         
         pygame.display.flip()
@@ -328,13 +289,12 @@ def main():
     sys.exit()
 
 def start_game(mode):
-    # Stop menu music before starting game
     sound_manager.stop_menu_music()
     
     if mode == "solo":
-        main()  # Start the main game loop
+        main()
     elif mode == "split_screen":
-        print("Split screen mode is not implemented yet.")  # Placeholder
+        print("Split screen mode is not implemented yet.")
 
 def settings_menu():
     theme = pygame_menu.themes.THEME_DARK.copy()
@@ -360,7 +320,6 @@ def settings_menu():
         if not FULLSCREEN:
             CURRENT_RESOLUTION = res
             pygame.display.set_mode(res)
-            # Update menu size setelah mengubah resolusi
             menu.resize(min(res[0], pygame.display.get_surface().get_width()),
                        min(res[1], pygame.display.get_surface().get_height()))
 
@@ -399,13 +358,11 @@ def main_menu():
     
     menu = pygame_menu.Menu('Main Menu', 
                           min(WIDTH, pygame.display.get_surface().get_width()),
-                          min(HEIGHT, pygame.display.get_surface().get_height()),  # Fixed get_height method
+                          min(HEIGHT, pygame.display.get_surface().get_height()),
                           theme=theme)
     
-    # Load player data
     saved_money, highest_score, player_name = load_game_data()
     
-    # Add player info
     if player_name:
         menu.add.label(f"Welcome, {player_name}!")
         menu.add.label(f"Total Money: {saved_money}")
@@ -438,12 +395,12 @@ def player_name_screen():
         theme=theme
     )
     
-    player_name = [""]  # Use list to store name for reference in callback
+    player_name = [""]
     
     def save_name():
-        if player_name[0].strip():  # Check if name isn't empty
-            save_game_data(0, 0, player_name[0])  # Save initial data with player name
-            main_menu()  # Proceed to main menu
+        if player_name[0].strip():
+            save_game_data(0, 0, player_name[0])
+            main_menu()
     
     def name_changed(value):
         player_name[0] = value
@@ -455,7 +412,6 @@ def player_name_screen():
 
 if __name__ == "__main__":
     splash_screen()
-    # Check if save file exists
     _, _, player_name = load_game_data()
     if not player_name:
         player_name_screen()

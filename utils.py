@@ -20,9 +20,9 @@ def load_game_data():
             game_data = pickle.load(file)
             return (game_data['money'], 
                    game_data['highest_score'],
-                   game_data.get('player_name', ""))  # Use get() with default value
+                   game_data.get('player_name', "")) 
     except (FileNotFoundError, EOFError, KeyError):
-        return 0, 0, ""  # Return empty string for player_name if file doesn't exist
+        return 0, 0, "" 
 
 def pause_menu(screen, main_menu_callback):
     theme = pygame_menu.themes.THEME_DARK.copy()
@@ -30,25 +30,20 @@ def pause_menu(screen, main_menu_callback):
     theme.title_font = FONT_PATH
     
     menu = pygame_menu.Menu('Paused', WIDTH, HEIGHT, theme=theme)
-    menu.add.button('Resume', lambda: None)  # Resume game
-    menu.add.button('Main Menu', main_menu_callback)  # Go back to main menu
+    menu.add.button('Resume', lambda: None) 
+    menu.add.button('Main Menu', main_menu_callback)  
     menu.mainloop(screen)
 
 def highest_score_menu(screen, player, main_menu_callback, replay_callback):
-    # Load existing data
     saved_money, current_highest_score, player_name = load_game_data()
     
-    # Calculate total money
     total_money = saved_money + player.session_money
     
-    # Calculate final score
     final_score = (player.level * 10) + player.xp
     
-    # Update highest score if necessary
     if final_score > current_highest_score:
         current_highest_score = final_score
     
-    # Save updated total money and highest score
     save_game_data(total_money, current_highest_score, player_name)
 
     theme = pygame_menu.themes.THEME_DARK.copy()
