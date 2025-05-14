@@ -49,6 +49,18 @@ class Enemy(pygame.sprite.Sprite):
             except pygame.error as e:
                 print(f"Error loading death sprite: {path}")
                 print(e)
+
+        # Load attack frames
+        self.attack_frames = []
+        for i in range(8):
+            path = os.path.join("assets", "enemy", "fly-eye", "attack", f"attack{i}.png")
+            try:
+                image = pygame.image.load(path).convert_alpha()
+                image = pygame.transform.scale(image, (128, 128))
+                self.attack_frames.append(image)
+            except pygame.error as e:
+                print(f"Error loading attack sprite: {path}")
+                print(e)
         
         self.current_frame = 0
         self.animation_timer = 0
@@ -59,6 +71,17 @@ class Enemy(pygame.sprite.Sprite):
         self.is_hit = False
         self.hit_timer = 0
         self.hit_duration = 0.2
+
+        # Attack properties
+        self.is_attacking = False
+        self.attack_timer = 0
+        self.attack_duration = 0.8
+        self.attack_damage = 1
+        self.attack_range = 70
+        self.attack_cooldown = 0
+        self.attack_cooldown_duration = 1.5
+        self.damage_frame = 5
+        self.has_dealt_damage = False
         
         self.image = self.walk_frames[0]
         self.rect = self.image.get_rect()
@@ -93,6 +116,11 @@ class Enemy(pygame.sprite.Sprite):
         self.is_hit = True
         self.hit_timer = 0
         self.current_frame = 0
+
+    def start_attack_animation(self):
+        self.is_attacking = True
+        self.attack_timer = 0
+        self.has_dealt_damage = False
 
     def start_death_animation(self):
         self.is_dying = True
@@ -142,6 +170,29 @@ class Enemy(pygame.sprite.Sprite):
                         self.image = pygame.transform.flip(self.image, True, False)
                 elif self.current_frame >= len(self.death_frames) - 1:
                     self.kill()
+            return None, 0
+        
+        elif self.is_attacking:
+            self.attack_timer += dt
+            frame_progress = self.attack_timer / self.attack_duration
+            frame_index = min(int(frame_progress * len(self.attack_frames)), len(self.attack_frames) - 1)
+            self.image = self.attack_frames[frame_index]
+            
+            if self.facing_left:
+                self.image = pygame.transform.flip(self.image, True, False)
+            
+            # Check if we're at the damage frame
+            current_frame = int(self.attack_timer / self.attack_duration * len(self.attack_frames))
+            if current_frame == self.damage_frame and not self.has_dealt_damage:
+                self.has_dealt_damage = True
+                return True, self.attack_damage
+                
+            # Check if attack animation is complete
+            if self.attack_timer >= self.attack_duration:
+                self.is_attacking = False
+                self.attack_cooldown = self.attack_cooldown_duration
+            
+            return None, 0
         
         elif self.is_hit:
             self.hit_timer += dt
@@ -154,6 +205,7 @@ class Enemy(pygame.sprite.Sprite):
                 self.image = self.hit_frames[frame_index]
                 if self.facing_left:
                     self.image = pygame.transform.flip(self.image, True, False)
+            return None, 0
         
         else:
             self.animation_time += dt
@@ -163,21 +215,38 @@ class Enemy(pygame.sprite.Sprite):
                 self.image = self.walk_frames[self.current_frame]
                 if self.facing_left:
                     self.image = pygame.transform.flip(self.image, True, False)
+            return None, 0
 
     def update(self, player, enemies=None):
         if self.is_dying:
             self.animate(1/60)
-            return
+            return None, 0
+
+        if self.attack_cooldown > 0:
+            self.attack_cooldown -= 1/60
 
         to_player = pygame.math.Vector2(
             player.rect.centerx - self.rect.centerx,
             player.rect.centery - self.rect.centery
         )
         
+        distance_to_player = to_player.length()
+        
         if to_player.x != 0:
             self.facing_left = to_player.x < 0
         
-        if not self.is_hit:
+        # Jika dalam jarak serang dan cooldown selesai
+        if distance_to_player <= self.attack_range and self.attack_cooldown <= 0 and not self.is_attacking and not self.is_hit and not player.is_dying:
+            self.start_attack_animation()
+        
+        # Animasi, dan dapatkan sinyal damage
+        should_deal_damage, damage_amount = self.animate(1/60)
+        
+        # Jika perlu memberikan damage
+        if should_deal_damage:
+            return player, damage_amount
+        
+        if not self.is_attacking and not self.is_hit:
             if to_player.length() > 0:
                 to_player = to_player.normalize() * self.speed
             
@@ -193,7 +262,7 @@ class Enemy(pygame.sprite.Sprite):
             self.pos += final_movement
             self.rect.center = self.pos
         
-        self.animate(1/60)
+        return None, 0
 
     def draw(self, surface, camera_pos):
         if self.shadow:

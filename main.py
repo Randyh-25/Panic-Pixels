@@ -190,7 +190,16 @@ def main():
         partner.update(dt)
 
         for enemy in enemies:
-            enemy.update(player)
+            target, damage = enemy.update(player, enemies)
+            
+            # Jika enemy memberikan damage
+            if target and damage > 0:
+                player.health -= damage
+                if player.health <= 0:
+                    player.start_death_animation()
+                    death_transition = True
+                    blur_surface = create_blur_surface(screen.copy())
+                    break
 
         projectiles.update()
 
@@ -206,16 +215,6 @@ def main():
                     all_sprites.add(exp)
                     experiences.add(exp)
                     player.session_money += 10
-
-        if not death_transition:
-            hits = pygame.sprite.spritecollide(player, enemies, False)
-            for enemy in hits:
-                player.health -= 1
-                if player.health <= 0:
-                    player.start_death_animation()
-                    death_transition = True
-                    blur_surface = create_blur_surface(screen.copy())
-                    break
 
         if death_transition:
             animation_finished = player.update_death_animation(dt)
@@ -563,7 +562,7 @@ def split_screen_main():
             p2_dist = float('inf') if player2.is_dying else math.hypot(
                          player2.rect.centerx - enemy.rect.centerx,
                          player2.rect.centery - enemy.rect.centery)
-                         
+                 
             # Pilih pemain yang masih hidup
             if p1_dist == float('inf') and p2_dist == float('inf'):
                 # Jika keduanya mati, target acak (ini jarang terjadi)
@@ -571,7 +570,17 @@ def split_screen_main():
             else:
                 target = player1 if p1_dist < p2_dist else player2
                 
-            enemy.update(target, enemies)
+            hit_target, damage = enemy.update(target, enemies)
+            
+            # Jika enemy memberikan damage
+            if hit_target and damage > 0:
+                hit_target.health -= damage
+                if hit_target.health <= 0:
+                    hit_target.start_death_animation()
+                    if not death_transition:  # Ambil screenshot blur hanya sekali
+                        death_transition = True
+                        blur_surface = create_blur_surface(screen.copy())
+                    break
 
         projectiles1.update()
         projectiles2.update()
@@ -591,23 +600,6 @@ def split_screen_main():
                         # Split money between players
                         player1.session_money += 5
                         player2.session_money += 5
-
-        # Check player deaths (perbaikan)
-        player1_hit = False
-        player2_hit = False
-
-        # Periksa collision untuk kedua pemain terlepas dari status death_transition
-        for player, hit_var in [(player1, "player1_hit"), (player2, "player2_hit")]:
-            if not player.is_dying:  # Hanya periksa pemain yang masih hidup
-                hits = pygame.sprite.spritecollide(player, enemies, False)
-                for enemy in hits:
-                    player.health -= 1
-                    if player.health <= 0:
-                        player.start_death_animation()
-                        if not death_transition:  # Ambil screenshot blur hanya sekali
-                            death_transition = True
-                            blur_surface = create_blur_surface(screen.copy())
-                        break
 
         # Handle death transition
         if death_transition:
