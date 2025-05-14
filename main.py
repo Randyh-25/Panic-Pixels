@@ -17,6 +17,7 @@ from sound_manager import SoundManager
 from particles import ParticleSystem
 from partner import Partner
 from player2 import Player2
+from hit_effects import RockHitEffect
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  
@@ -216,6 +217,12 @@ def main():
                 # Skip enemy yang sudah dalam animasi mati
                 if enemy.is_dying:
                     continue
+                
+                # Tambahkan efek hit dari rock
+                hit_effect = RockHitEffect((enemy.rect.centerx, enemy.rect.centery))
+                all_sprites.add(hit_effect)
+                effects.add(hit_effect)
+                
                 enemy.take_hit(projectile.damage)
                 if enemy.health <= 0:
                     exp = Experience(enemy.rect.centerx, enemy.rect.centery)
@@ -606,6 +613,12 @@ def split_screen_main():
                     # Skip enemy yang sudah dalam animasi mati
                     if enemy.is_dying:
                         continue
+                        
+                    # Tambahkan efek hit dari rock
+                    hit_effect = RockHitEffect((enemy.rect.centerx, enemy.rect.centery))
+                    all_sprites.add(hit_effect)
+                    effects.add(hit_effect)
+                    
                     enemy.take_hit(projectile.damage)
                     if enemy.health <= 0:
                         exp = Experience(enemy.rect.centerx, enemy.rect.centery)
