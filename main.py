@@ -393,7 +393,7 @@ def game_mode_menu():
     
     menu = pygame_menu.Menu('Game Mode', WIDTH, HEIGHT, theme=theme)
     menu.add.button('Solo', lambda: start_game("solo"))
-    menu.add.button('Split Screen', lambda: start_game("split_screen"))
+    menu.add.button('Co-op Multiplayer', lambda: start_game("split_screen"))
     menu.add.button('Back', main_menu)
     menu.mainloop(screen)
 
