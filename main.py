@@ -68,6 +68,7 @@ def create_blur_surface(surface):
 
 def main():
     map_path = os.path.join("assets", "maps", "desert", "plain.png")
+    map_type = "desert"  # Default to desert map
     
     try:
         game_map = Map(map_path)
@@ -75,6 +76,9 @@ def main():
         print(f"Error loading map: {e}")
         return
 
+    # Play desert music
+    sound_manager.play_gameplay_music(map_type)
+    
     camera = Camera(game_map.width, game_map.height)
 
     all_sprites = pygame.sprite.Group()
@@ -234,7 +238,6 @@ def main():
             animation_finished = player.update_death_animation(dt)
             
             screen.blit(blur_surface, (0, 0))
-            
             screen.blit(player.image, camera.apply(player))
             
             fade_surface = pygame.Surface((WIDTH, HEIGHT))
@@ -246,6 +249,8 @@ def main():
                 if death_alpha >= 255:
                     transition_timer += 1
                     if transition_timer >= TRANSITION_DELAY:
+                        # Stop the gameplay music before going to score menu
+                        sound_manager.stop_gameplay_music()
                         highest_score_menu(screen, player, main_menu, main)
                         return
             
@@ -425,7 +430,21 @@ def player_name_screen():
     menu.mainloop(screen)
 
 def split_screen_main():
-    # Add this function at the beginning of split_screen_main
+    map_path = os.path.join("assets", "maps", "desert", "plain.png")
+    map_type = "desert"  # Default to desert map
+    
+    try:
+        game_map = Map(map_path)
+    except Exception as e:
+        print(f"Error loading map: {e}")
+        return
+
+    # Play desert music
+    sound_manager.play_gameplay_music(map_type)
+    
+    camera = Camera(game_map.width, game_map.height)
+
+    # Define the draw_game function first
     def draw_game(viewport, offset_x=0):
         viewport_surface = screen.subsurface(viewport)
         game_map.draw(viewport_surface, camera)
@@ -440,17 +459,8 @@ def split_screen_main():
                 sprite_rect = sprite.rect.move(camera.x + offset_x, camera.y)
                 if viewport.colliderect(sprite_rect):
                     viewport_surface.blit(sprite.image, camera.apply(sprite))
-    
-    map_path = os.path.join("assets", "maps", "desert", "plain.png")
-    
-    try:
-        game_map = Map(map_path)
-    except Exception as e:
-        print(f"Error loading map: {e}")
-        return
 
-    camera = Camera(game_map.width, game_map.height)
-
+    # Continue with the rest of split_screen_main function
     all_sprites = pygame.sprite.Group()
     enemies = pygame.sprite.Group()
     projectiles1 = pygame.sprite.Group()
@@ -637,7 +647,6 @@ def split_screen_main():
                 
             both_dead = player1.health <= 0 and player2.health <= 0
             if both_dead:
-                # Transisi ke game over hanya jika kedua pemain mati
                 death_alpha = min(death_alpha + FADE_SPEED, 255)
                 fade_surface = pygame.Surface((WIDTH, HEIGHT))
                 fade_surface.fill(BLACK)
@@ -647,6 +656,8 @@ def split_screen_main():
                 if death_alpha >= 255:
                     transition_timer += 1
                     if transition_timer >= TRANSITION_DELAY:
+                        # Stop the gameplay music before going to game over screen
+                        sound_manager.stop_gameplay_music()
                         splitscreen_game_over(screen, player1, player2, main_menu, split_screen_main)
                         return
 
