@@ -9,13 +9,14 @@ from enemy import Enemy
 from projectile import Projectile
 from experience import Experience, LevelUpEffect
 import pygame_menu
-from utils import pause_menu, highest_score_menu, load_game_data, save_game_data
+from utils import pause_menu, highest_score_menu, load_game_data, save_game_data, splitscreen_game_over
 from maps import Map
-from ui import HealthBar, MoneyDisplay, XPBar 
+from ui import HealthBar, MoneyDisplay, XPBar, SplitScreenUI
 from settings import load_font
 from sound_manager import SoundManager
 from particles import ParticleSystem
 from partner import Partner
+from player2 import Player2
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  
@@ -294,7 +295,7 @@ def start_game(mode):
     if mode == "solo":
         main()
     elif mode == "split_screen":
-        print("Split screen mode is not implemented yet.")
+        split_screen_main()
 
 def settings_menu():
     theme = pygame_menu.themes.THEME_DARK.copy()
@@ -410,6 +411,277 @@ def player_name_screen():
     menu.add.button('Confirm', save_name)
     menu.mainloop(screen)
 
+def split_screen_main():
+    # Add this function at the beginning of split_screen_main
+    def draw_game(viewport, offset_x=0):
+        viewport_surface = screen.subsurface(viewport)
+        game_map.draw(viewport_surface, camera)
+        particle_system.draw(viewport_surface, camera)
+        
+        for sprite in all_sprites:
+            if isinstance(sprite, Enemy):
+                sprite_rect = sprite.rect.move(camera.x + offset_x, camera.y)
+                if viewport.colliderect(sprite_rect):
+                    sprite.draw(viewport_surface, (camera.x, camera.y))
+            else:
+                sprite_rect = sprite.rect.move(camera.x + offset_x, camera.y)
+                if viewport.colliderect(sprite_rect):
+                    viewport_surface.blit(sprite.image, camera.apply(sprite))
+    
+    map_path = os.path.join("assets", "maps", "desert", "plain.png")
+    
+    try:
+        game_map = Map(map_path)
+    except Exception as e:
+        print(f"Error loading map: {e}")
+        return
+
+    camera = Camera(game_map.width, game_map.height)
+
+    all_sprites = pygame.sprite.Group()
+    enemies = pygame.sprite.Group()
+    projectiles1 = pygame.sprite.Group()
+    projectiles2 = pygame.sprite.Group()
+    experiences = pygame.sprite.Group()
+    effects = pygame.sprite.Group()
+
+    # Initialize both players and their partners
+    player1 = Player()
+    player2 = Player2()
+    
+    for player in [player1, player2]:
+        player.game_map = game_map
+        player.sound_manager = sound_manager
+        player.world_bounds = pygame.Rect(0, 0, game_map.width, game_map.height)
+    
+    # Position players apart from each other
+    player1.rect.center = (game_map.width // 2 - 100, game_map.height // 2)
+    player2.rect.center = (game_map.width // 2 + 100, game_map.height // 2)
+    
+    partner1 = Partner(player1)
+    partner2 = Partner(player2)
+    
+    all_sprites.add(player1, player2, partner1, partner2)
+
+    # Create projectile pools for both players
+    MAX_PROJECTILES = 20
+    projectile_pool1 = []
+    projectile_pool2 = []
+    
+    for _ in range(MAX_PROJECTILES):
+        for pool, group in [(projectile_pool1, projectiles1), (projectile_pool2, projectiles2)]:
+            projectile = Projectile((0,0), (0,0))
+            pool.append(projectile)
+            all_sprites.add(projectile)
+            group.add(projectile)
+            projectile.kill()
+
+    running = True
+    paused = False
+    enemy_spawn_timer = 0
+    projectile_timer = 0
+    
+    # Initialize split screen UI
+    ui = SplitScreenUI(WIDTH, HEIGHT)
+    
+    death_transition = False
+    death_alpha = 0
+    blur_surface = None
+    FADE_SPEED = 15
+    TRANSITION_DELAY = 5
+    transition_timer = 0
+    
+    particle_system = ParticleSystem(WIDTH, HEIGHT)
+    
+    while running:
+        dt = clock.tick(FPS) / 1000.0
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                paused = True
+                pause_menu(screen, main_menu)
+                paused = False
+
+        if paused:
+            continue
+
+        # Spawn enemies
+        enemy_spawn_timer += 1
+        MAX_ENEMIES = 20  # Increased for 2 players
+        if enemy_spawn_timer >= 60 and len(enemies) < MAX_ENEMIES:
+            # Spawn near random player
+            target_player = random.choice([player1, player2])
+            enemy = Enemy((target_player.rect.centerx, target_player.rect.centery))
+            all_sprites.add(enemy)
+            enemies.add(enemy)
+            enemy_spawn_timer = 0
+
+        # Handle projectiles for both players
+        projectile_timer += 1
+        if projectile_timer >= 30 and len(enemies) > 0:
+            for player, partner, pool, projs in [
+                (player1, partner1, projectile_pool1, projectiles1),
+                (player2, partner2, projectile_pool2, projectiles2)
+            ]:
+                closest_enemy = None
+                min_dist = float('inf')
+                shoot_radius = 500
+                
+                for enemy in enemies:
+                    dist = math.hypot(enemy.rect.centerx - player.rect.centerx,
+                                  enemy.rect.centery - player.rect.centery)
+                    if dist < min_dist and dist < shoot_radius:
+                        min_dist = dist
+                        closest_enemy = enemy
+
+                if closest_enemy:
+                    for projectile in pool:
+                        if not projectile.alive():
+                            start_pos = partner.get_shooting_position()
+                            target_pos = (closest_enemy.rect.centerx, closest_enemy.rect.centery)
+                            partner.shoot_at(target_pos)
+                            projectile.reset(start_pos, target_pos)
+                            projectile.add(all_sprites, projs)
+                            projectile_timer = 0
+                            break
+                else:
+                    partner.stop_shooting()
+
+        # Update all game objects
+        player1.update()
+        player2.update()
+        partner1.update(dt)
+        partner2.update(dt)
+        
+        for enemy in enemies:
+            # Enemies target the nearest LIVING player
+            p1_dist = float('inf') if player1.is_dying else math.hypot(
+                         player1.rect.centerx - enemy.rect.centerx,
+                         player1.rect.centery - enemy.rect.centery)
+            p2_dist = float('inf') if player2.is_dying else math.hypot(
+                         player2.rect.centerx - enemy.rect.centerx,
+                         player2.rect.centery - enemy.rect.centery)
+                         
+            # Pilih pemain yang masih hidup
+            if p1_dist == float('inf') and p2_dist == float('inf'):
+                # Jika keduanya mati, target acak (ini jarang terjadi)
+                target = random.choice([player1, player2])
+            else:
+                target = player1 if p1_dist < p2_dist else player2
+                
+            enemy.update(target, enemies)
+
+        projectiles1.update()
+        projectiles2.update()
+        experiences.update()
+        effects.update(dt)
+
+        # Handle projectile hits
+        for projs in [projectiles1, projectiles2]:
+            hits = pygame.sprite.groupcollide(projs, enemies, True, False)
+            for projectile, hit_enemies in hits.items():
+                for enemy in hit_enemies:
+                    enemy.take_hit(projectile.damage)
+                    if enemy.health <= 0:
+                        exp = Experience(enemy.rect.centerx, enemy.rect.centery)
+                        all_sprites.add(exp)
+                        experiences.add(exp)
+                        # Split money between players
+                        player1.session_money += 5
+                        player2.session_money += 5
+
+        # Check player deaths (perbaikan)
+        player1_hit = False
+        player2_hit = False
+
+        # Periksa collision untuk kedua pemain terlepas dari status death_transition
+        for player, hit_var in [(player1, "player1_hit"), (player2, "player2_hit")]:
+            if not player.is_dying:  # Hanya periksa pemain yang masih hidup
+                hits = pygame.sprite.spritecollide(player, enemies, False)
+                for enemy in hits:
+                    player.health -= 1
+                    if player.health <= 0:
+                        player.start_death_animation()
+                        if not death_transition:  # Ambil screenshot blur hanya sekali
+                            death_transition = True
+                            blur_surface = create_blur_surface(screen.copy())
+                        break
+
+        # Handle death transition
+        if death_transition:
+            if player1.health <= 0:
+                player1.update_death_animation(dt)
+            if player2.health <= 0:
+                player2.update_death_animation(dt)
+                
+            both_dead = player1.health <= 0 and player2.health <= 0
+            if both_dead:
+                # Transisi ke game over hanya jika kedua pemain mati
+                death_alpha = min(death_alpha + FADE_SPEED, 255)
+                fade_surface = pygame.Surface((WIDTH, HEIGHT))
+                fade_surface.fill(BLACK)
+                fade_surface.set_alpha(death_alpha)
+                screen.blit(fade_surface, (0, 0))
+                
+                if death_alpha >= 255:
+                    transition_timer += 1
+                    if transition_timer >= TRANSITION_DELAY:
+                        splitscreen_game_over(screen, player1, player2, main_menu, split_screen_main)
+                        return
+
+        # Handle experience collection
+        for player in [player1, player2]:
+            hits = pygame.sprite.spritecollide(player, experiences, True)
+            for exp in hits:
+                player.xp += 5
+                player.session_money += 5
+                
+                if player.xp >= player.max_xp:
+                    player.level += 1
+                    player.xp -= player.max_xp
+                    player.max_xp = int(player.max_xp * 1.2)
+                    
+                    level_effect = LevelUpEffect(player)
+                    effects.add(level_effect)
+                    all_sprites.add(level_effect)
+
+        # Update camera to follow midpoint between players
+        mid_x = (player1.rect.centerx + player2.rect.centerx) // 2
+        mid_y = (player1.rect.centery + player2.rect.centery) // 2
+        camera.x = -mid_x + WIDTH // 2
+        camera.y = -mid_y + HEIGHT // 2
+        
+        camera.x = min(0, max(-(game_map.width - WIDTH), camera.x))
+        camera.y = min(0, max(-(game_map.height - HEIGHT), camera.y))
+
+        # Draw everything
+        if camera.split_mode:
+            # Draw divider line
+            pygame.draw.line(screen, WHITE, (WIDTH//2, 0), (WIDTH//2, HEIGHT), 2)
+            
+            # Draw left viewport (Player 1)
+            left_viewport = pygame.Rect(0, 0, WIDTH//2, HEIGHT)
+            draw_game(left_viewport)
+            
+            # Draw right viewport (Player 2)
+            right_viewport = pygame.Rect(WIDTH//2, 0, WIDTH//2, HEIGHT)
+            draw_game(right_viewport, WIDTH//2)
+            
+            # Draw UI for both players
+            ui.draw_split(screen, player1, player2, True)
+        else:
+            # Normal single screen drawing
+            full_viewport = pygame.Rect(0, 0, WIDTH, HEIGHT)
+            draw_game(full_viewport)
+            ui.draw(screen, player1, player2)
+
+        pygame.display.flip()
+
+    pygame.quit()
+    sys.exit()
+    
 if __name__ == "__main__":
     splash_screen()
     _, _, player_name = load_game_data()

@@ -1,23 +1,20 @@
 import pygame
-import math
 from settings import WIDTH, HEIGHT, BLUE
 from utils import load_game_data
 from player_animations import PlayerAnimations
 
-class Player(pygame.sprite.Sprite):
+class Player2(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.player_id = 1
         self.animations = PlayerAnimations()
         
         self.image = self.animations.animations['idle_down'][0]
         self.rect = self.image.get_rect()
-        self.rect.center = (WIDTH // 2, HEIGHT // 2)
+        self.rect.center = (WIDTH // 2 + 100, HEIGHT // 2) # Offset from player 1
         
         self.speed = 5
         self.max_health = 100
         self.health = self.max_health
-        self.saved_money, _, self.name = load_game_data()
         self.session_money = 0
         self.xp = 0
         self.max_xp = 100
@@ -120,13 +117,15 @@ class Player(pygame.sprite.Sprite):
         dx = 0
         dy = 0
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_a]:
+        
+        # Using arrow keys for Player 2
+        if keys[pygame.K_LEFT]:
             dx -= self.speed
-        if keys[pygame.K_d]:
+        if keys[pygame.K_RIGHT]:
             dx += self.speed
-        if keys[pygame.K_w]:
+        if keys[pygame.K_UP]:
             dy -= self.speed
-        if keys[pygame.K_s]:
+        if keys[pygame.K_DOWN]:
             dy += self.speed
             
         if dx != 0 and dy != 0:
@@ -156,67 +155,3 @@ class Player(pygame.sprite.Sprite):
             self.rect.y = old_y
             
         self.animate(1/60)
-
-class Camera:
-    def __init__(self, map_width, map_height):
-        self.x = 0
-        self.y = 0
-        self.map_width = map_width
-        self.map_height = map_height
-        self.split_mode = False
-        self.viewport_rect = pygame.Rect(0, 0, WIDTH, HEIGHT)
-
-    def apply(self, entity):
-        if not self.split_mode:
-            return entity.rect.move(self.x, self.y)
-        else:
-            if hasattr(entity, 'player_id'):
-                if entity.player_id == 1:
-                    return entity.rect.move(self.x, self.y)
-                else:
-                    return entity.rect.move(self.x2, self.y2)
-            return entity.rect.move(self.x, self.y)
-
-    def update(self, player1, player2=None):
-        if player2 is None:
-            # Solo mode
-            self.x = -player1.rect.centerx + WIDTH // 2
-            self.y = -player1.rect.centery + HEIGHT // 2
-            self.x = min(0, max(-(self.map_width - WIDTH), self.x))
-            self.y = min(0, max(-(self.map_height - HEIGHT), self.y))
-            self.viewport_rect = pygame.Rect(0, 0, WIDTH, HEIGHT)
-            return
-
-        # Split screen mode
-        distance = math.hypot(
-            player1.rect.centerx - player2.rect.centerx,
-            player1.rect.centery - player2.rect.centery
-        )
-
-        self.split_mode = distance > WIDTH * 0.6
-
-        if self.split_mode:
-            # Camera for Player 1 (left side)
-            self.x = -player1.rect.centerx + WIDTH // 4
-            self.y = -player1.rect.centery + HEIGHT // 2
-            self.x = min(0, max(-(self.map_width - WIDTH//2), self.x))
-            self.y = min(0, max(-(self.map_height - HEIGHT), self.y))
-
-            # Camera for Player 2 (right side)
-            self.x2 = -player2.rect.centerx + WIDTH * 3 // 4
-            self.y2 = -player2.rect.centery + HEIGHT // 2
-            self.x2 = min(0, max(-(self.map_width - WIDTH//2), self.x2))
-            self.y2 = min(0, max(-(self.map_height - HEIGHT), self.y2))
-
-            # Set viewport rectangles for split screen
-            self.viewport_rect = pygame.Rect(0, 0, WIDTH//2, HEIGHT)
-            self.viewport_rect2 = pygame.Rect(WIDTH//2, 0, WIDTH//2, HEIGHT)
-        else:
-            # Single screen - follow midpoint
-            mid_x = (player1.rect.centerx + player2.rect.centerx) // 2
-            mid_y = (player1.rect.centery + player2.rect.centery) // 2
-            self.x = -mid_x + WIDTH // 2
-            self.y = -mid_y + HEIGHT // 2
-            self.x = min(0, max(-(self.map_width - WIDTH), self.x))
-            self.y = min(0, max(-(self.map_height - HEIGHT), self.y))
-            self.viewport_rect = pygame.Rect(0, 0, WIDTH, HEIGHT)

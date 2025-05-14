@@ -60,3 +60,31 @@ def highest_score_menu(screen, player, main_menu_callback, replay_callback):
     menu.add.button('Replay', replay_callback)
     menu.add.button('Main Menu', main_menu_callback)
     menu.mainloop(screen)
+
+def save_splitscreen_data(money=0):
+    game_data = {
+        'money': money,
+        'mode': 'splitscreen'
+    }
+    with open(SAVE_FILE, 'wb') as file:
+        pickle.dump(game_data, file)
+
+def splitscreen_game_over(screen, player1, player2, main_menu_callback, replay_callback):
+    saved_money, _, _ = load_game_data()
+    total_session_money = player1.session_money + player2.session_money
+    total_money = saved_money + total_session_money
+    
+    save_splitscreen_data(total_money)
+
+    theme = pygame_menu.themes.THEME_DARK.copy()
+    theme.widget_font = FONT_PATH
+    theme.title_font = FONT_PATH
+    
+    menu = pygame_menu.Menu('Game Over', WIDTH, HEIGHT, theme=theme)
+    menu.add.label(f'Player 1 Level: {player1.level}')
+    menu.add.label(f'Player 2 Level: {player2.level}')
+    menu.add.label(f'Session Money: {total_session_money}')
+    menu.add.label(f'Total Money: {total_money}')
+    menu.add.button('Replay', replay_callback)
+    menu.add.button('Main Menu', main_menu_callback)
+    menu.mainloop(screen)

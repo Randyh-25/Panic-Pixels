@@ -96,26 +96,73 @@ class XPBar:
         
         self.text_margin_bottom = 30
 
-    def draw(self, screen, current_xp, max_xp, level):
-        screen.blit(self.bg, (self.x, self.y))
+    def draw(self, screen, current_xp, max_xp, level, max_width=None):
+        if max_width is None:
+            max_width = self.bg_width
+            
+        # Scale background and fill to viewport width
+        scaled_bg = pygame.transform.scale(self.bg, (max_width, self.bg_height))
+        scaled_fill = pygame.transform.scale(self.fill, (max_width - 20, self.fill_height))
+        
+        screen.blit(scaled_bg, (self.x, self.y))
         
         xp_ratio = max(0, min(current_xp / max_xp, 1))
-        current_fill_width = int(self.fill_width * xp_ratio)
+        current_fill_width = int((max_width - 20) * xp_ratio)
         
         if current_fill_width > 0:
             fill_surface = pygame.Surface((current_fill_width, self.fill_height), pygame.SRCALPHA)
-            fill_surface.blit(self.fill, (0, 0), (0, 0, current_fill_width, self.fill_height))
+            fill_surface.blit(scaled_fill, (0, 0), (0, 0, current_fill_width, self.fill_height))
             screen.blit(fill_surface, (
                 self.x + self.fill_x_offset,
                 self.y + self.fill_y_offset
             ))
         
+        # Draw text with proper positioning
         level_text = render_text_with_border(self.font, f"Level {level}", WHITE, BLACK)
-        text_x = 10
+        text_x = self.x + 10
         text_y = self.y - self.text_margin_bottom
         screen.blit(level_text, (text_x, text_y))
         
         xp_text = render_text_with_border(self.font, f"{current_xp}/{max_xp} XP", WHITE, BLACK)
-        xp_x = self.bg_width - xp_text.get_width() - 10
+        xp_x = self.x + max_width - xp_text.get_width() - 10
         xp_y = self.y - self.text_margin_bottom
         screen.blit(xp_text, (xp_x, xp_y))
+
+class SplitScreenUI:
+    def __init__(self, screen_width, screen_height):
+        self.health_bar1 = HealthBar()
+        self.health_bar2 = HealthBar()
+        self.health_bar2.x = screen_width - 200
+        
+        self.xp_bar1 = XPBar(screen_width // 2, screen_height)
+        self.xp_bar2 = XPBar(screen_width // 2, screen_height)
+        self.xp_bar2.x = screen_width // 2
+        
+        self.money_display = MoneyDisplay()
+        
+    def draw(self, screen, player1, player2):
+        self.health_bar1.draw(screen, player1.health, player1.max_health)
+        self.health_bar2.draw(screen, player2.health, player2.max_health)
+        self.xp_bar1.draw(screen, player1.xp, player1.max_xp, player1.level)
+        self.xp_bar2.draw(screen, player2.xp, player2.max_xp, player2.level)
+        total_session_money = player1.session_money + player2.session_money
+        self.money_display.draw(screen, total_session_money)
+
+    def draw_split(self, screen, player1, player2, split_mode):
+        if split_mode:
+            # Left side UI (Player 1)
+            self.health_bar1.draw(screen, player1.health, player1.max_health)
+            self.xp_bar1.draw(screen, player1.xp, player1.max_xp, player1.level, WIDTH//2)
+            
+            # Right side UI (Player 2)
+            self.health_bar2.x = WIDTH//2 + 10
+            self.xp_bar2.x = WIDTH//2
+            self.health_bar2.draw(screen, player2.health, player2.max_health)
+            self.xp_bar2.draw(screen, player2.xp, player2.max_xp, player2.level, WIDTH)
+            
+            # Shared money display in center
+            total_session_money = player1.session_money + player2.session_money
+            self.money_display.x = WIDTH//2 - self.money_display.icon_width//2
+            self.money_display.draw(screen, total_session_money)
+        else:
+            self.draw(screen, player1, player2)
