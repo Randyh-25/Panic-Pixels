@@ -76,7 +76,7 @@ class Enemy(pygame.sprite.Sprite):
         self.is_attacking = False
         self.attack_timer = 0
         self.attack_duration = 0.8
-        self.attack_damage = 1
+        self.attack_damage = 10
         self.attack_range = 70
         self.attack_cooldown = 0
         self.attack_cooldown_duration = 1.5
