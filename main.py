@@ -165,6 +165,10 @@ def main():
             
             shoot_radius = 500
             for enemy in enemies:
+                # Skip enemy yang sedang dalam animasi mati
+                if enemy.is_dying:
+                    continue
+                    
                 dist = math.hypot(enemy.rect.centerx - player.rect.centerx,
                               enemy.rect.centery - player.rect.centery)
                 if dist < min_dist and dist < shoot_radius:
@@ -209,6 +213,9 @@ def main():
         hits = pygame.sprite.groupcollide(projectiles, enemies, True, False)
         for projectile, hit_enemies in hits.items():
             for enemy in hit_enemies:
+                # Skip enemy yang sudah dalam animasi mati
+                if enemy.is_dying:
+                    continue
                 enemy.take_hit(projectile.damage)
                 if enemy.health <= 0:
                     exp = Experience(enemy.rect.centerx, enemy.rect.centery)
@@ -529,6 +536,10 @@ def split_screen_main():
                 shoot_radius = 500
                 
                 for enemy in enemies:
+                    # Skip enemy yang sedang dalam animasi mati
+                    if enemy.is_dying:
+                        continue
+                        
                     dist = math.hypot(enemy.rect.centerx - player.rect.centerx,
                                   enemy.rect.centery - player.rect.centery)
                     if dist < min_dist and dist < shoot_radius:
@@ -592,6 +603,9 @@ def split_screen_main():
             hits = pygame.sprite.groupcollide(projs, enemies, True, False)
             for projectile, hit_enemies in hits.items():
                 for enemy in hit_enemies:
+                    # Skip enemy yang sudah dalam animasi mati
+                    if enemy.is_dying:
+                        continue
                     enemy.take_hit(projectile.damage)
                     if enemy.health <= 0:
                         exp = Experience(enemy.rect.centerx, enemy.rect.centery)
