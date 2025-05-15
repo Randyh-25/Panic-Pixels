@@ -268,6 +268,10 @@ def main():
                     player.xp -= player.max_xp
                     player.max_xp = int(player.max_xp * 1.2)
                     
+                    # Tambahkan max health saat level up
+                    player.max_health += 20
+                    player.health = player.max_health  # Isi penuh health
+                    
                     level_effect = LevelUpEffect(player)
                     effects.add(level_effect)
                     all_sprites.add(level_effect)
@@ -672,6 +676,10 @@ def split_screen_main():
                     player.level += 1
                     player.xp -= player.max_xp
                     player.max_xp = int(player.max_xp * 1.2)
+                    
+                    # Tambahkan max health saat level up
+                    player.max_health += 20
+                    player.health = player.max_health  # Isi penuh health
                     
                     level_effect = LevelUpEffect(player)
                     effects.add(level_effect)
