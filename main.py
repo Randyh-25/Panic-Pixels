@@ -733,15 +733,24 @@ def split_screen_main():
 
         # Draw everything
         if camera.split_mode:
-            # Draw divider line
-            pygame.draw.line(screen, WHITE, (WIDTH//2, 0), (WIDTH//2, HEIGHT), 2)
+            # Draw more visible divider between viewports
+            divider_width = 4  # Lebar garis pemisah (4 pixel)
+            divider_rect = pygame.Rect(WIDTH//2 - divider_width//2, 0, divider_width, HEIGHT)
+            pygame.draw.rect(screen, (255, 215, 0), divider_rect)  # Warna kuning emas untuk visibilitas
+            
+            # Optional: Tambahkan shadow effect untuk kedalaman
+            shadow_width = 2
+            pygame.draw.rect(screen, (100, 100, 100, 128), 
+                            pygame.Rect(WIDTH//2 - divider_width//2 - shadow_width, 0, shadow_width, HEIGHT))
+            pygame.draw.rect(screen, (100, 100, 100, 128), 
+                            pygame.Rect(WIDTH//2 + divider_width//2, 0, shadow_width, HEIGHT))
             
             # Draw left viewport (Player 1)
-            left_viewport = pygame.Rect(0, 0, WIDTH//2, HEIGHT)
+            left_viewport = pygame.Rect(0, 0, WIDTH//2 - divider_width//2, HEIGHT)
             draw_game(left_viewport, 0, 1)  # Draw with player 1 filter
             
             # Draw right viewport (Player 2)
-            right_viewport = pygame.Rect(WIDTH//2, 0, WIDTH//2, HEIGHT)
+            right_viewport = pygame.Rect(WIDTH//2 + divider_width//2, 0, WIDTH//2 - divider_width//2, HEIGHT)
             draw_game(right_viewport, WIDTH//2, 2)  # Draw with player 2 filter
             
             # Draw UI for both players
