@@ -227,3 +227,7 @@ class Camera:
             
             self.x = min(0, max(-(self.map_width - WIDTH), self.x))
             self.y = min(0, max(-(self.map_height - HEIGHT), self.y))
+
+    def apply(self, sprite):
+        """Return the position of the sprite relative to the camera."""
+        return sprite.rect.x + self.x, sprite.rect.y + self.y
