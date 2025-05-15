@@ -5,6 +5,8 @@ import os
 class Partner(pygame.sprite.Sprite):
     def __init__(self, player):
         super().__init__()
+        self.player = player
+        self.player_id = player.player_id
         
         self.eagle_frames = []
         for i in range(1, 5):

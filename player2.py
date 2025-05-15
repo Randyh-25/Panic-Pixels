@@ -7,6 +7,7 @@ class Player2(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.animations = PlayerAnimations()
+        self.player_id = 2
         
         self.image = self.animations.animations['idle_down'][0]
         self.rect = self.image.get_rect()

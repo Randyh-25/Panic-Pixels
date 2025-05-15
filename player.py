@@ -161,62 +161,69 @@ class Camera:
     def __init__(self, map_width, map_height):
         self.x = 0
         self.y = 0
+        self.x2 = 0
+        self.y2 = 0
         self.map_width = map_width
         self.map_height = map_height
         self.split_mode = False
         self.viewport_rect = pygame.Rect(0, 0, WIDTH, HEIGHT)
-
-    def apply(self, entity):
-        if not self.split_mode:
-            return entity.rect.move(self.x, self.y)
-        else:
-            if hasattr(entity, 'player_id'):
-                if entity.player_id == 1:
-                    return entity.rect.move(self.x, self.y)
-                else:
-                    return entity.rect.move(self.x2, self.y2)
-            return entity.rect.move(self.x, self.y)
-
+    
     def update(self, player1, player2=None):
         if player2 is None:
-            # Solo mode
+            # Solo mode atau satu player mati dalam split screen
             self.x = -player1.rect.centerx + WIDTH // 2
             self.y = -player1.rect.centery + HEIGHT // 2
             self.x = min(0, max(-(self.map_width - WIDTH), self.x))
             self.y = min(0, max(-(self.map_height - HEIGHT), self.y))
-            self.viewport_rect = pygame.Rect(0, 0, WIDTH, HEIGHT)
+            self.split_mode = False
             return
 
-        # Split screen mode
+        # Calculate distance between players
         distance = math.hypot(
             player1.rect.centerx - player2.rect.centerx,
             player1.rect.centery - player2.rect.centery
         )
-
-        self.split_mode = distance > WIDTH * 0.6
+        
+        # Toggle split screen based on distance
+        self.split_mode = distance > WIDTH * 0.6 and player1.health > 0 and player2.health > 0
+        
+        # If one player is dead, follow the other one only
+        if player1.health <= 0 or player2.health <= 0:
+            self.split_mode = False
+            
+            if player1.health <= 0:
+                # Follow player 2
+                self.x = -player2.rect.centerx + WIDTH // 2
+                self.y = -player2.rect.centery + HEIGHT // 2
+            else:
+                # Follow player 1
+                self.x = -player1.rect.centerx + WIDTH // 2
+                self.y = -player1.rect.centery + HEIGHT // 2
+                
+            self.x = min(0, max(-(self.map_width - WIDTH), self.x))
+            self.y = min(0, max(-(self.map_height - HEIGHT), self.y))
+            return
 
         if self.split_mode:
-            # Camera for Player 1 (left side)
-            self.x = -player1.rect.centerx + WIDTH // 4
+            # Camera for player 1 (left side)
+            self.x = -player1.rect.centerx + WIDTH // 4  # Center player1 in left viewport
             self.y = -player1.rect.centery + HEIGHT // 2
             self.x = min(0, max(-(self.map_width - WIDTH//2), self.x))
             self.y = min(0, max(-(self.map_height - HEIGHT), self.y))
-
-            # Camera for Player 2 (right side)
-            self.x2 = -player2.rect.centerx + WIDTH * 3 // 4
+            
+            # Camera for player 2 (right side) - PERBAIKAN
+            # Gunakan WIDTH * 3 // 4 untuk memposisikan player2 di tengah viewport kanan
+            self.x2 = -player2.rect.centerx + WIDTH // 4  # Offset viewport kanan
             self.y2 = -player2.rect.centery + HEIGHT // 2
             self.x2 = min(0, max(-(self.map_width - WIDTH//2), self.x2))
             self.y2 = min(0, max(-(self.map_height - HEIGHT), self.y2))
-
-            # Set viewport rectangles for split screen
-            self.viewport_rect = pygame.Rect(0, 0, WIDTH//2, HEIGHT)
-            self.viewport_rect2 = pygame.Rect(WIDTH//2, 0, WIDTH//2, HEIGHT)
         else:
-            # Single screen - follow midpoint
+            # Follow midpoint
             mid_x = (player1.rect.centerx + player2.rect.centerx) // 2
             mid_y = (player1.rect.centery + player2.rect.centery) // 2
+            
             self.x = -mid_x + WIDTH // 2
             self.y = -mid_y + HEIGHT // 2
+            
             self.x = min(0, max(-(self.map_width - WIDTH), self.x))
             self.y = min(0, max(-(self.map_height - HEIGHT), self.y))
-            self.viewport_rect = pygame.Rect(0, 0, WIDTH, HEIGHT)

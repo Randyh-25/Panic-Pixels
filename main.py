@@ -449,20 +449,51 @@ def split_screen_main():
     camera = Camera(game_map.width, game_map.height)
 
     # Define the draw_game function first
-    def draw_game(viewport, offset_x=0):
+    def draw_game(viewport, offset_x=0, player_filter=None):
         viewport_surface = screen.subsurface(viewport)
-        game_map.draw(viewport_surface, camera)
-        particle_system.draw(viewport_surface, camera)
         
+        # Tentukan kamera yang tepat berdasarkan viewport
+        cam_x = camera.x
+        cam_y = camera.y
+        
+        # Jika kita menggambar viewport kanan, gunakan x2/y2
+        if camera.split_mode and offset_x > 0:
+            cam_x = camera.x2
+            cam_y = camera.y2
+        
+        # Gambar map dan particles
+        game_map.draw(viewport_surface, (cam_x, cam_y))
+        particle_system.draw(viewport_surface, (cam_x, cam_y))
+        
+        # Viewport rect untuk deteksi batas layar
+        world_view_rect = pygame.Rect(-cam_x, -cam_y, viewport.width, viewport.height)
+        
+        # Gambar semua sprite dengan kondisi filter
         for sprite in all_sprites:
-            if isinstance(sprite, Enemy):
-                sprite_rect = sprite.rect.move(camera.x + offset_x, camera.y)
-                if viewport.colliderect(sprite_rect):
-                    sprite.draw(viewport_surface, (camera.x, camera.y))
-            else:
-                sprite_rect = sprite.rect.move(camera.x + offset_x, camera.y)
-                if viewport.colliderect(sprite_rect):
-                    viewport_surface.blit(sprite.image, camera.apply(sprite))
+            # Jika dalam mode split screen, filter berdasarkan viewport
+            if camera.split_mode:
+                # Kasus khusus untuk player dan partner
+                if hasattr(sprite, 'player_id'):
+                    # Di viewport kiri hanya gambar player1 dan partner1
+                    if offset_x == 0 and sprite.player_id == 2:
+                        continue
+                    # Di viewport kanan hanya gambar player2 dan partner2
+                    if offset_x > 0 and sprite.player_id == 1:
+                        continue
+            
+            # Hanya gambar sprite jika ada dalam viewport
+            if world_view_rect.colliderect(sprite.rect):
+                if isinstance(sprite, Enemy):
+                    sprite.draw(viewport_surface, (cam_x, cam_y))
+                else:
+                    # Untuk viewport kanan, kita perlu menyesuaikan posisi x kamera
+                    if camera.split_mode and offset_x > 0:
+                        # Berikan offset tambahan untuk kompensasi viewport kanan
+                        pos_x = sprite.rect.x + cam_x
+                        pos_y = sprite.rect.y + cam_y
+                        viewport_surface.blit(sprite.image, (pos_x, pos_y))
+                    else:
+                        viewport_surface.blit(sprite.image, (sprite.rect.x + cam_x, sprite.rect.y + cam_y))
 
     # Continue with the rest of split_screen_main function
     all_sprites = pygame.sprite.Group()
@@ -489,6 +520,10 @@ def split_screen_main():
     partner2 = Partner(player2)
     
     all_sprites.add(player1, player2, partner1, partner2)
+
+    # Set player_id for partners
+    partner1.player_id = 1
+    partner2.player_id = 2
 
     # Create projectile pools for both players
     MAX_PROJECTILES = 20
@@ -686,13 +721,15 @@ def split_screen_main():
                     all_sprites.add(level_effect)
 
         # Update camera to follow midpoint between players
-        mid_x = (player1.rect.centerx + player2.rect.centerx) // 2
-        mid_y = (player1.rect.centery + player2.rect.centery) // 2
-        camera.x = -mid_x + WIDTH // 2
-        camera.y = -mid_y + HEIGHT // 2
-        
-        camera.x = min(0, max(-(game_map.width - WIDTH), camera.x))
-        camera.y = min(0, max(-(game_map.height - HEIGHT), camera.y))
+        if player1.health <= 0:
+            # Player 1 mati, kamera ikuti player 2
+            camera.update(player2)
+        elif player2.health <= 0:
+            # Player 2 mati, kamera ikuti player 1
+            camera.update(player1)
+        else:
+            # Kedua player hidup, gunakan kamera split screen
+            camera.update(player1, player2)
 
         # Draw everything
         if camera.split_mode:
@@ -701,11 +738,11 @@ def split_screen_main():
             
             # Draw left viewport (Player 1)
             left_viewport = pygame.Rect(0, 0, WIDTH//2, HEIGHT)
-            draw_game(left_viewport)
+            draw_game(left_viewport, 0, 1)  # Draw with player 1 filter
             
             # Draw right viewport (Player 2)
             right_viewport = pygame.Rect(WIDTH//2, 0, WIDTH//2, HEIGHT)
-            draw_game(right_viewport, WIDTH//2)
+            draw_game(right_viewport, WIDTH//2, 2)  # Draw with player 2 filter
             
             # Draw UI for both players
             ui.draw_split(screen, player1, player2, True)

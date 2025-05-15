@@ -266,4 +266,9 @@ class Map:
         return zones
 
     def draw(self, screen, camera):
-        screen.blit(self.map_surface, (camera.x, camera.y))
+        # Jika camera adalah tuple, gunakan langsung
+        if isinstance(camera, tuple):
+            screen.blit(self.map_surface, camera)
+        else:
+            # Jika camera adalah objek Camera, gunakan atribut x dan y
+            screen.blit(self.map_surface, (camera.x, camera.y))
