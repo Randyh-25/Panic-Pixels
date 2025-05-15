@@ -166,7 +166,7 @@ class SplitScreenUI:
             
             # Shared money display in center
             total_session_money = player1.session_money + player2.session_money
-            self.money_display.x = self.screen_width//2 - self.money_display.icon_width//2
+            #self.money_display.x = self.screen_width//2 - self.money_display.icon_width//2
             self.money_display.draw(screen, total_session_money)
         else:
             self.draw(screen, player1, player2)
