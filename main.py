@@ -142,20 +142,102 @@ def main():
     PARTICLES_PER_SPAWN = 2
     
     session_start_ticks = pygame.time.get_ticks()  # Simpan waktu mulai session
-    
+    pause_ticks = 0
+    pause_start = None
+
+    cheat_pause_ticks = 0      
+    cheat_pause_start = None   
+
+    cheat_mode = False
+    cheat_input = ""
+    cheat_message = ""
+    original_max_health = None
+    original_health = None
+
     while running:
         dt = clock.tick(FPS) / 1000.0
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                paused = True
-                pause_menu(screen, main_menu)
-                paused = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    paused = True
+                    pause_start = pygame.time.get_ticks()  # MULAI PAUSE
+                    pause_menu(screen, main_menu)
+                    paused = False
+                    if pause_start is not None:
+                        pause_ticks += pygame.time.get_ticks() - pause_start  # TAMBAHKAN DURASI PAUSE
+                        pause_start = None
+                elif event.key == pygame.K_BACKQUOTE:  # Tombol `
+                    cheat_mode = not cheat_mode
+                    cheat_input = ""
+                    cheat_message = ""
+                    if cheat_mode:
+                        cheat_pause_start = pygame.time.get_ticks()
+                    else:
+                        if cheat_pause_start is not None:
+                            cheat_pause_ticks += pygame.time.get_ticks() - cheat_pause_start
+                            cheat_pause_start = None
+            elif event.type == pygame.TEXTINPUT and cheat_mode:
+                cheat_input += event.text
 
         if paused:
             continue
+
+        # Cheat input handling
+        if cheat_mode:
+            # Draw semi-transparent overlay (benar-benar transparan, game tetap terlihat)
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 80))  # alpha 80, makin kecil makin transparan
+            screen.blit(overlay, (0, 0))
+
+            # Draw input box
+            font_cheat = load_font(36)
+            box_rect = pygame.Rect(WIDTH//2 - 200, HEIGHT//2 - 40, 400, 80)
+            pygame.draw.rect(screen, (40, 40, 40), box_rect, border_radius=8)
+            pygame.draw.rect(screen, (200, 200, 200), box_rect, 2, border_radius=8)
+
+            input_surface = font_cheat.render(cheat_input, True, (255, 255, 0))
+            screen.blit(input_surface, (box_rect.x + 20, box_rect.y + 20))
+
+            # Draw message if any, geser ke bawah kotak
+            if cheat_message:
+                msg_surface = font_cheat.render(cheat_message, True, (0, 255, 0))
+                msg_rect = msg_surface.get_rect(center=(WIDTH//2, box_rect.y + box_rect.height + 30))
+                screen.blit(msg_surface, msg_rect)
+
+            pygame.display.flip()
+
+            # Handle enter and backspace
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_RETURN]:
+                # Process cheat command
+                if cheat_input == "orkaybanh":
+                    player.session_money += 10000
+                    cheat_message = "Money +10000!"
+                elif cheat_input == "armordaribapak":
+                    if original_max_health is None:
+                        original_max_health = player.max_health
+                        original_health = player.health
+                    player.max_health = 1000
+                    player.health = 1000
+                    cheat_message = "Armor dari bapak aktif!"
+                elif cheat_input == "rakyatbiasa":
+                    if original_max_health is not None:
+                        player.max_health = original_max_health
+                        player.health = original_health
+                        original_max_health = None
+                        original_health = None
+                    cheat_message = "Cheat dinonaktifkan!"
+                else:
+                    cheat_message = "Command tidak dikenal."
+                cheat_input = ""
+                pygame.time.wait(400)  # Prevent rapid enter
+            elif keys[pygame.K_BACKSPACE]:
+                cheat_input = cheat_input[:-1]
+                pygame.time.wait(100)
+            continue  # Skip game update while cheat menu open
 
         enemy_spawn_timer += 1
         MAX_ENEMIES = 15
@@ -309,7 +391,7 @@ def main():
             xp_bar.draw(screen, player.xp, player.max_xp, player.level)
         
         # --- SESSION TIMER ---
-        elapsed_ms = pygame.time.get_ticks() - session_start_ticks
+        elapsed_ms = pygame.time.get_ticks() - session_start_ticks - cheat_pause_ticks - pause_ticks
         elapsed_seconds = elapsed_ms // 1000
         minutes = elapsed_seconds // 60
         seconds = elapsed_seconds % 60
@@ -572,6 +654,12 @@ def split_screen_main():
     
     session_start_ticks = pygame.time.get_ticks()  # Simpan waktu mulai session
     
+    pause_ticks = 0
+    pause_start = None
+
+    cheat_pause_ticks = 0      # <--- Tambahkan ini
+    cheat_pause_start = None   # <--- Tambahkan ini
+
     while running:
         dt = clock.tick(FPS) / 1000.0
 
@@ -580,8 +668,12 @@ def split_screen_main():
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 paused = True
+                pause_start = pygame.time.get_ticks()  # MULAI PAUSE
                 pause_menu(screen, main_menu)
                 paused = False
+                if pause_start is not None:
+                    pause_ticks += pygame.time.get_ticks() - pause_start  # TAMBAHKAN DURASI PAUSE
+                    pause_start = None
 
         if paused:
             continue
@@ -779,7 +871,7 @@ def split_screen_main():
             ui.draw(screen, player1, player2)
 
         # --- SESSION TIMER ---
-        elapsed_ms = pygame.time.get_ticks() - session_start_ticks
+        elapsed_ms = pygame.time.get_ticks() - session_start_ticks - pause_ticks
         elapsed_seconds = elapsed_ms // 1000
         minutes = elapsed_seconds // 60
         seconds = elapsed_seconds % 60

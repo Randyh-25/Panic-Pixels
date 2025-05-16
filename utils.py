@@ -30,7 +30,7 @@ def pause_menu(screen, main_menu_callback):
     theme.title_font = FONT_PATH
     
     menu = pygame_menu.Menu('Paused', WIDTH, HEIGHT, theme=theme)
-    menu.add.button('Resume', lambda: None) 
+    menu.add.button('Resume', menu.disable)  # Ini akan menutup menu pause
     menu.add.button('Main Menu', main_menu_callback)  
     menu.mainloop(screen)
 
