@@ -11,7 +11,7 @@ from experience import Experience, LevelUpEffect
 import pygame_menu
 from utils import pause_menu, highest_score_menu, load_game_data, save_game_data, splitscreen_game_over
 from maps import Map
-from ui import HealthBar, MoneyDisplay, XPBar, SplitScreenUI
+from ui import HealthBar, MoneyDisplay, XPBar, SplitScreenUI, render_text_with_border
 from settings import load_font
 from sound_manager import SoundManager
 from particles import ParticleSystem
@@ -140,6 +140,8 @@ def main():
     particle_spawn_timer = 0
     PARTICLE_SPAWN_RATE = 3
     PARTICLES_PER_SPAWN = 2
+    
+    session_start_ticks = pygame.time.get_ticks()  # Simpan waktu mulai session
     
     while running:
         dt = clock.tick(FPS) / 1000.0
@@ -306,6 +308,19 @@ def main():
             
             xp_bar.draw(screen, player.xp, player.max_xp, player.level)
         
+        # --- SESSION TIMER ---
+        elapsed_ms = pygame.time.get_ticks() - session_start_ticks
+        elapsed_seconds = elapsed_ms // 1000
+        minutes = elapsed_seconds // 60
+        seconds = elapsed_seconds % 60
+        timer_text = f"{minutes:02d}:{seconds:02d}"
+
+        timer_font = load_font(48)
+        timer_surface = render_text_with_border(timer_font, timer_text, WHITE, BLACK)
+        timer_rect = timer_surface.get_rect(center=(WIDTH // 2, 40))
+        screen.blit(timer_surface, timer_rect)
+        # --- END SESSION TIMER ---
+
         pygame.display.flip()
 
     pygame.quit()
@@ -555,6 +570,8 @@ def split_screen_main():
     
     particle_system = ParticleSystem(WIDTH, HEIGHT)
     
+    session_start_ticks = pygame.time.get_ticks()  # Simpan waktu mulai session
+    
     while running:
         dt = clock.tick(FPS) / 1000.0
 
@@ -760,6 +777,19 @@ def split_screen_main():
             full_viewport = pygame.Rect(0, 0, WIDTH, HEIGHT)
             draw_game(full_viewport)
             ui.draw(screen, player1, player2)
+
+        # --- SESSION TIMER ---
+        elapsed_ms = pygame.time.get_ticks() - session_start_ticks
+        elapsed_seconds = elapsed_ms // 1000
+        minutes = elapsed_seconds // 60
+        seconds = elapsed_seconds % 60
+        timer_text = f"{minutes:02d}:{seconds:02d}"
+
+        timer_font = load_font(48)
+        timer_surface = render_text_with_border(timer_font, timer_text, WHITE, BLACK)
+        timer_rect = timer_surface.get_rect(center=(WIDTH // 2, 40))
+        screen.blit(timer_surface, timer_rect)
+        # --- END SESSION TIMER ---
 
         pygame.display.flip()
 
