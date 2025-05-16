@@ -18,6 +18,7 @@ from particles import ParticleSystem
 from partner import Partner
 from player2 import Player2
 from hit_effects import RockHitEffect
+from devil import Devil
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  
@@ -154,6 +155,12 @@ def main():
     original_max_health = None
     original_health = None
 
+    devil = None
+    devil_spawn_times = [4*60*1000]  # ms, menit ke-4
+    next_devil_time = devil_spawn_times[0]
+    devil_notif_timer = 0
+    devil_notif_show = False
+
     while running:
         dt = clock.tick(FPS) / 1000.0
 
@@ -230,6 +237,16 @@ def main():
                         original_max_health = None
                         original_health = None
                     cheat_message = "Cheat dinonaktifkan!"
+                elif cheat_input == "timeheist":
+                    session_start_ticks -= 230 * 1000
+                    cheat_message = "Waktu dipercepat +3:50!"
+                elif cheat_input == "dealwithdevil":
+                    if devil is None:
+                        devil = Devil(game_map.width, game_map.height)
+                        all_sprites.add(devil)
+                        cheat_message = "Devil muncul!"
+                    else:
+                        cheat_message = "Devil sudah ada!"
                 else:
                     cheat_message = "Command tidak dikenal."
                 cheat_input = ""
@@ -313,10 +330,13 @@ def main():
                 
                 enemy.take_hit(projectile.damage)
                 if enemy.health <= 0:
-                    exp = Experience(enemy.rect.centerx, enemy.rect.centery)
-                    all_sprites.add(exp)
-                    experiences.add(exp)
-                    player.session_money += 10
+                    # Cek apakah enemy dibunuh devil
+                    if not getattr(enemy, "killed_by_devil", False):
+                        exp = Experience(enemy.rect.centerx, enemy.rect.centery)
+                        all_sprites.add(exp)
+                        experiences.add(exp)
+                        # Tambah uang ke player (solo)
+                        player.session_money += 5
 
         if death_transition:
             animation_finished = player.update_death_animation(dt)
@@ -402,6 +422,45 @@ def main():
         timer_rect = timer_surface.get_rect(center=(WIDTH // 2, 40))
         screen.blit(timer_surface, timer_rect)
         # --- END SESSION TIMER ---
+
+        now = pygame.time.get_ticks()
+        if devil is None and now >= next_devil_time:
+            devil = Devil(game_map.width, game_map.height)
+            all_sprites.add(devil)
+            devil_notif_timer = now
+            devil_notif_show = True
+            # Jadwalkan spawn berikutnya
+            if len(devil_spawn_times) == 1:
+                devil_spawn_times.append(next_devil_time + 5*60*1000)
+            else:
+                devil_spawn_times.append(devil_spawn_times[-1] + 5*60*1000)
+            next_devil_time = devil_spawn_times[-1]
+
+        if devil:
+            devil.update(dt, player.rect, enemies)
+            # --- Indikator Devil untuk mode solo ---
+            dx = devil.rect.centerx - player.rect.centerx
+            dy = devil.rect.centery - player.rect.centery
+            dist = math.hypot(dx, dy)
+            if dist > 300:
+                angle = math.atan2(dy, dx)
+                arrow_x = WIDTH//2 + math.cos(angle)*180
+                arrow_y = HEIGHT//2 + math.sin(angle)*180
+                pygame.draw.polygon(screen, (255,0,0), [
+                    (arrow_x, arrow_y),
+                    (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
+                    (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
+                ])
+            devil.draw(screen, (camera.x, camera.y))
+
+        # Notif
+        if devil_notif_show and pygame.time.get_ticks() - devil_notif_timer < 2500:
+            notif_font = load_font(36)
+            notif = notif_font.render("The Devil want to speak with you!", True, (255,50,50))
+            notif_rect = notif.get_rect(center=(WIDTH//2, HEIGHT//2-120))
+            screen.blit(notif, notif_rect)
+        else:
+            devil_notif_show = False
 
         pygame.display.flip()
 
@@ -779,12 +838,13 @@ def split_screen_main():
                     
                     enemy.take_hit(projectile.damage)
                     if enemy.health <= 0:
-                        exp = Experience(enemy.rect.centerx, enemy.rect.centery)
-                        all_sprites.add(exp)
-                        experiences.add(exp)
-                        # Split money between players
-                        player1.session_money += 5
-                        player2.session_money += 5
+                        # Cek apakah enemy dibunuh devil
+                        if not getattr(enemy, "killed_by_devil", False):
+                            exp = Experience(enemy.rect.centerx, enemy.rect.centery)
+                            all_sprites.add(exp)
+                            experiences.add(exp)
+                            # Tambah uang ke player (solo)
+                            player.session_money += 5
 
         # Handle death transition
         if death_transition:
@@ -882,6 +942,45 @@ def split_screen_main():
         timer_rect = timer_surface.get_rect(center=(WIDTH // 2, 40))
         screen.blit(timer_surface, timer_rect)
         # --- END SESSION TIMER ---
+
+        now = pygame.time.get_ticks()
+        if devil is None and now >= next_devil_time:
+            devil = Devil(game_map.width, game_map.height)
+            all_sprites.add(devil)
+            devil_notif_timer = now
+            devil_notif_show = True
+            # Jadwalkan spawn berikutnya
+            if len(devil_spawn_times) == 1:
+                devil_spawn_times.append(next_devil_time + 5*60*1000)
+            else:
+                devil_spawn_times.append(devil_spawn_times[-1] + 5*60*1000)
+            next_devil_time = devil_spawn_times[-1]
+
+        if devil:
+            devil.update(dt, player.rect, enemies)
+            # --- Indikator Devil untuk mode solo ---
+            dx = devil.rect.centerx - player.rect.centerx
+            dy = devil.rect.centery - player.rect.centery
+            dist = math.hypot(dx, dy)
+            if dist > 300:
+                angle = math.atan2(dy, dx)
+                arrow_x = WIDTH//2 + math.cos(angle)*180
+                arrow_y = HEIGHT//2 + math.sin(angle)*180
+                pygame.draw.polygon(screen, (255,0,0), [
+                    (arrow_x, arrow_y),
+                    (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
+                    (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
+                ])
+            devil.draw(screen, (camera.x, camera.y))
+
+        # Notif
+        if devil_notif_show and pygame.time.get_ticks() - devil_notif_timer < 2500:
+            notif_font = load_font(36)
+            notif = notif_font.render("The Devil want to speak with you!", True, (255,50,50))
+            notif_rect = notif.get_rect(center=(WIDTH//2, HEIGHT//2-120))
+            screen.blit(notif, notif_rect)
+        else:
+            devil_notif_show = False
 
         pygame.display.flip()
 
