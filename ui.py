@@ -161,11 +161,11 @@ class SplitScreenUI:
             self.health_bar1.draw(screen, player1.health, player1.max_health)
             self.xp_bar1.draw(screen, player1.xp, player1.max_xp, player1.level, self.screen_width//2)
             
-            # Right side UI (Player 2) - TETAP di pojok kanan atas
-            # Jangan ubah self.health_bar2.x di sini!
+            # Right side UI (Player 2)
             self.health_bar2.draw(screen, player2.health, player2.max_health)
             self.xp_bar2.x = self.screen_width // 2
-            self.xp_bar2.draw(screen, player2.xp, player2.max_xp, player2.level, self.screen_width)
+            # PERBAIKI DI SINI: gunakan self.screen_width//2
+            self.xp_bar2.draw(screen, player2.xp, player2.max_xp, player2.level, self.screen_width//2)
             
             # Shared money display in center
             total_session_money = player1.session_money + player2.session_money
