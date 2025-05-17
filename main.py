@@ -711,6 +711,13 @@ def split_screen_main():
     
     particle_system = ParticleSystem(WIDTH, HEIGHT)
     
+    # Tambahkan inisialisasi devil dan variabel terkait
+    devil = None
+    devil_spawn_times = [4*60*1000]  # ms, menit ke-4
+    next_devil_time = devil_spawn_times[0]
+    devil_notif_timer = 0
+    devil_notif_show = False
+
     session_start_ticks = pygame.time.get_ticks()  # Simpan waktu mulai session
     
     pause_ticks = 0
