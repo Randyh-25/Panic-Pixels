@@ -438,19 +438,20 @@ def main():
 
         if devil:
             devil.update(dt, player.rect, enemies)
-            # --- Indikator Devil untuk mode solo ---
-            dx = devil.rect.centerx - player.rect.centerx
-            dy = devil.rect.centery - player.rect.centery
-            dist = math.hypot(dx, dy)
-            if dist > 300:
-                angle = math.atan2(dy, dx)
-                arrow_x = WIDTH//2 + math.cos(angle)*180
-                arrow_y = HEIGHT//2 + math.sin(angle)*180
-                pygame.draw.polygon(screen, (255,0,0), [
-                    (arrow_x, arrow_y),
-                    (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
-                    (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
-                ])
+            # Indikator hanya muncul jika devil masih aktif
+            if not getattr(devil, "fading_out", False) and not getattr(devil, "despawning", False):
+                dx = devil.rect.centerx - player.rect.centerx
+                dy = devil.rect.centery - player.rect.centery
+                dist = math.hypot(dx, dy)
+                if dist > 300:
+                    angle = math.atan2(dy, dx)
+                    arrow_x = WIDTH//2 + math.cos(angle)*180
+                    arrow_y = HEIGHT//2 + math.sin(angle)*180
+                    pygame.draw.polygon(screen, (255,0,0), [
+                        (arrow_x, arrow_y),
+                        (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
+                        (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
+                    ])
             devil.draw(screen, (camera.x, camera.y))
 
         # Notif
@@ -965,19 +966,20 @@ def split_screen_main():
 
         if devil:
             devil.update(dt, player.rect, enemies)
-            # --- Indikator Devil untuk mode solo ---
-            dx = devil.rect.centerx - player.rect.centerx
-            dy = devil.rect.centery - player.rect.centery
-            dist = math.hypot(dx, dy)
-            if dist > 300:
-                angle = math.atan2(dy, dx)
-                arrow_x = WIDTH//2 + math.cos(angle)*180
-                arrow_y = HEIGHT//2 + math.sin(angle)*180
-                pygame.draw.polygon(screen, (255,0,0), [
-                    (arrow_x, arrow_y),
-                    (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
-                    (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
-                ])
+            # Indikator hanya muncul jika devil masih aktif
+            if not getattr(devil, "fading_out", False) and not getattr(devil, "despawning", False):
+                dx = devil.rect.centerx - player.rect.centerx
+                dy = devil.rect.centery - player.rect.centery
+                dist = math.hypot(dx, dy)
+                if dist > 300:
+                    angle = math.atan2(dy, dx)
+                    arrow_x = WIDTH//2 + math.cos(angle)*180
+                    arrow_y = HEIGHT//2 + math.sin(angle)*180
+                    pygame.draw.polygon(screen, (255,0,0), [
+                        (arrow_x, arrow_y),
+                        (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
+                        (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
+                    ])
             devil.draw(screen, (camera.x, camera.y))
 
         # Notif

@@ -7,15 +7,14 @@ from settings import WIDTH, HEIGHT, RED
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, player_pos):
         super().__init__()
-        
         try:
-            self.shadow = pygame.image.load("assets/shadow.png").convert_alpha()
+            self.shadow_img = pygame.image.load("assets/shadow.png").convert_alpha()
             shadow_size = (100, 50)
-            self.shadow = pygame.transform.scale(self.shadow, shadow_size)
+            self.shadow_img = pygame.transform.scale(self.shadow_img, shadow_size)
             self.shadow_offset_y = -20
         except pygame.error as e:
             print(f"Error loading shadow sprite: {e}")
-            self.shadow = None
+            self.shadow_img = None
 
         self.walk_frames = []
         for i in range(8):
@@ -94,6 +93,9 @@ class Enemy(pygame.sprite.Sprite):
         self.separation_radius = 60
         
         self.facing_left = False
+
+        self.fading_out = False
+        self.fade_alpha = 255
 
     def spawn(self, player_pos):
         spawn_distance = 400
@@ -219,7 +221,13 @@ class Enemy(pygame.sprite.Sprite):
 
     def update(self, player, enemies=None):
         if self.is_dying:
-            self.animate(1/60)
+            finished = self.animate(1/60)
+            if finished and not self.fading_out:
+                self.fading_out = True
+            if self.fading_out:
+                self.fade_alpha -= int(255 * (1/60) * 2)  # 0.5 detik fade
+                if self.fade_alpha <= 0:
+                    self.kill()
             return None, 0
 
         if self.attack_cooldown > 0:
@@ -264,15 +272,16 @@ class Enemy(pygame.sprite.Sprite):
         
         return None, 0
 
-    def draw(self, surface, camera_pos):
-        if self.shadow:
-            shadow_pos = (
-                self.rect.centerx - self.shadow.get_width() // 2 + camera_pos[0],
-                self.rect.bottom - self.shadow.get_height() // 2 + camera_pos[1] + self.shadow_offset_y
-            )
-            surface.blit(self.shadow, shadow_pos)
-        
-        surface.blit(self.image, (
-            self.rect.x + camera_pos[0],
-            self.rect.y + camera_pos[1]
-        ))
+    def draw(self, surface, camera_offset):
+        # Draw shadow first
+        if self.shadow_img is not None:
+            shadow = self.shadow_img.copy()
+            if getattr(self, "fading_out", False):
+                shadow.set_alpha(self.fade_alpha)
+            shadow_rect = shadow.get_rect(center=(self.rect.centerx + camera_offset[0], self.rect.bottom + camera_offset[1] - self.shadow_img.get_height()//2 + self.shadow_offset_y))
+            surface.blit(shadow, shadow_rect)
+        # Draw enemy
+        img = self.image.copy()
+        if getattr(self, "fading_out", False):
+            img.set_alpha(self.fade_alpha)
+        surface.blit(img, (self.rect.x + camera_offset[0], self.rect.y + camera_offset[1]))

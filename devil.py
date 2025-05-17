@@ -3,7 +3,7 @@ import os
 import random
 
 DEVIL_SIZE = (256, 256)
-FX_SIZE = (DEVIL_SIZE[0] + 20, DEVIL_SIZE[1] + 20)
+FX_SIZE = (DEVIL_SIZE[0] + 40, DEVIL_SIZE[1] + 40)
 
 class Devil(pygame.sprite.Sprite):
     def __init__(self, map_width, map_height):
