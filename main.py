@@ -240,7 +240,7 @@ def main():
                 elif cheat_input == "timeheist":
                     session_start_ticks -= 230 * 1000
                     cheat_message = "Waktu dipercepat +3:50!"
-                elif cheat_input == "dealwithdevil":
+                elif cheat_input == "dealwiththedevil":
                     if devil is None:
                         devil = Devil(game_map.width, game_map.height)
                         all_sprites.add(devil)
@@ -455,7 +455,14 @@ def main():
                         (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
                         (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
                     ])
-            devil.draw(screen, (camera.x, camera.y))
+    
+            # Draw layers in the correct order:
+            # 1. Bottom layer - Red circle
+            devil.draw_damage_circle(screen, (camera.x, camera.y))
+            # 2. Middle layer - Shadow
+            devil.draw_shadow(screen, (camera.x, camera.y))
+            # 3. Top layer - Character
+            devil.draw_character(screen, (camera.x, camera.y))
 
         # Notif
         if devil_notif_show and pygame.time.get_ticks() - devil_notif_timer < 2500:
@@ -986,7 +993,14 @@ def split_screen_main():
                         (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
                         (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
                     ])
-            devil.draw(screen, (camera.x, camera.y))
+    
+            # Draw layers in the correct order:
+            # 1. Bottom layer - Red circle
+            devil.draw_damage_circle(screen, (camera.x, camera.y))
+            # 2. Middle layer - Shadow  
+            devil.draw_shadow(screen, (camera.x, camera.y))
+            # 3. Top layer - Character
+            devil.draw_character(screen, (camera.x, camera.y))
 
         # Notif
         if devil_notif_show and pygame.time.get_ticks() - devil_notif_timer < 2500:
