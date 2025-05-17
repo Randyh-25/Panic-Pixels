@@ -3,12 +3,12 @@ import random
 import sys
 import math
 import os
+import pygame_menu
 from settings import *
 from player import Player, Camera
 from enemy import Enemy
 from projectile import Projectile
 from experience import Experience, LevelUpEffect
-import pygame_menu
 from utils import pause_menu, highest_score_menu, load_game_data, save_game_data, splitscreen_game_over
 from maps import Map
 from ui import HealthBar, MoneyDisplay, XPBar, SplitScreenUI, render_text_with_border
