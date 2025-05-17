@@ -24,9 +24,26 @@ class SoundManager:
                 sound.set_volume(0.2)
                 self.footstep_sounds.append(sound)
         
+        # Add player sound effects
+        self.player_death_sound = self.load_sound(os.path.join("assets", "sound", "cowboy", "death.ogg"))
+        self.player_levelup_sound = self.load_sound(os.path.join("assets", "sound", "cowboy", "lvlup.ogg"))
+        
+        if self.player_death_sound:
+            self.player_death_sound.set_volume(0.5)
+        if self.player_levelup_sound:
+            self.player_levelup_sound.set_volume(0.7)
+        
         self.volume = 50
         self.set_volume(self.volume)
-        
+    
+    def load_sound(self, path):
+        try:
+            return pygame.mixer.Sound(path)
+        except pygame.error as e:
+            print(f"Error loading sound: {path}")
+            print(e)
+            return None
+
     def set_volume(self, volume):
         self.volume = volume / 100.0
         pygame.mixer.music.set_volume(self.volume)
@@ -56,3 +73,11 @@ class SoundManager:
     def play_random_footstep(self):
         if self.footstep_sounds:
             random.choice(self.footstep_sounds).play()
+            
+    def play_player_death(self):
+        if self.player_death_sound:
+            self.player_death_sound.play()
+            
+    def play_player_levelup(self):
+        if self.player_levelup_sound:
+            self.player_levelup_sound.play()

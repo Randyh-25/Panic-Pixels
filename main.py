@@ -376,6 +376,9 @@ def main():
                     player.max_health += 20
                     player.health = player.max_health  # Isi penuh health
                     
+                    # Play level up sound
+                    sound_manager.play_player_levelup()
+                    
                     level_effect = LevelUpEffect(player)
                     effects.add(level_effect)
                     all_sprites.add(level_effect)
@@ -892,6 +895,9 @@ def split_screen_main():
                     # Tambahkan max health saat level up
                     player.max_health += 20
                     player.health = player.max_health  # Isi penuh health
+                    
+                    # Play level up sound
+                    sound_manager.play_player_levelup()
                     
                     level_effect = LevelUpEffect(player)
                     effects.add(level_effect)

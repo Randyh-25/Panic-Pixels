@@ -72,6 +72,10 @@ class Player2(pygame.sprite.Sprite):
         self.death_frame = 0
         self.death_timer = 0
         
+        # Play death sound
+        if hasattr(self, 'sound_manager') and self.sound_manager:
+            self.sound_manager.play_player_death()
+
     def update_death_animation(self, dt):
         if not self.is_dying:
             return False
