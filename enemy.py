@@ -2,7 +2,6 @@ import pygame
 import random
 import math
 import os
-from settings import WIDTH, HEIGHT, RED
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, player_pos):
@@ -15,6 +14,26 @@ class Enemy(pygame.sprite.Sprite):
         except pygame.error as e:
             print(f"Error loading shadow sprite: {e}")
             self.shadow_img = None
+
+        # Load sound effects for fly-eye
+        self.hit_sounds = []
+        for i in range(1, 4):
+            try:
+                sound_path = os.path.join("assets", "sound", "fly-eye", f"hit ({i}).ogg")
+                hit_sound = pygame.mixer.Sound(sound_path)
+                hit_sound.set_volume(0.2)  # Reduced volume so it's not distracting
+                self.hit_sounds.append(hit_sound)
+            except pygame.error as e:
+                print(f"Error loading hit sound: {sound_path}")
+                print(e)
+        
+        try:
+            self.death_sound = pygame.mixer.Sound(os.path.join("assets", "sound", "fly-eye", "death.ogg"))
+            self.death_sound.set_volume(0.2)  # Reduced volume so it's not distracting
+        except pygame.error as e:
+            print(f"Error loading death sound")
+            print(e)
+            self.death_sound = None
 
         self.walk_frames = []
         for i in range(8):
@@ -108,11 +127,23 @@ class Enemy(pygame.sprite.Sprite):
         self.pos = pygame.math.Vector2(self.rect.center)
 
     def take_hit(self, damage):
+        if self.is_dying:
+            return
+        
         self.health -= damage
+        self.is_hit = True
+        self.hit_timer = 0
+        
         if self.health <= 0:
-            self.start_death_animation()
+            self.is_dying = True
+            self.current_frame = 0
+            # Play death sound
+            if hasattr(self, 'death_sound') and self.death_sound:
+                self.death_sound.play()
         else:
-            self.start_hit_animation()
+            # Play random hit sound when damaged but not dying
+            if hasattr(self, 'hit_sounds') and self.hit_sounds:
+                random.choice(self.hit_sounds).play()
 
     def start_hit_animation(self):
         self.is_hit = True
