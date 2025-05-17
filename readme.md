@@ -121,19 +121,19 @@ python main.py
 
 ## 🚀 Future Roadmap
 
-### Short Term (3 Months)
+### Short Term
 - **New Maps**: Add forest and dungeon environments with unique enemies
 - **Weapon System**: Implement different weapon types with upgrade paths
 - **Boss Battles**: Create challenging boss encounters at specified intervals
 - **Online Multiplayer**: Basic networked gameplay support
 
-### Mid Term (6 Months)
+### Mid Term
 - **Character Classes**: Different playable characters with unique abilities
 - **Skill Trees**: Deeper progression mechanics with branching upgrades
 - **Procedural Map Generation**: Dynamic level creation for infinite replayability
 - **Custom Game Modes**: Survival, wave-based, and challenge modes
 
-### Long Term (12+ Months)
+### Long Term
 - **Mobile Port**: Android and iOS compatibility
 - **Story Campaign**: Narrative-driven single-player experience
 - **Workshop Support**: Community-created maps and mods
