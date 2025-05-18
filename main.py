@@ -465,7 +465,7 @@ def main():
 
         if devil:
             devil.update(dt, player.rect, enemies)
-    
+            
             # Only show interaction button if devil is active (not fading out or despawning)
             if not getattr(devil, "fading_out", False) and not getattr(devil, "despawning", False):
                 # Check if player is in range for interaction
@@ -478,7 +478,7 @@ def main():
                     interaction_button.show(player)
                 else:
                     interaction_button.hide()
-                    
+                
                 # Draw devil indicator when far away
                 if distance > 300:
                     angle = math.atan2(dy, dx)
@@ -673,6 +673,11 @@ def split_screen_main():
         # Viewport rect untuk deteksi batas layar
         world_view_rect = pygame.Rect(-cam_x, -cam_y, viewport.width, viewport.height)
         
+        # Draw the devil's damage circle (if active) - add this block
+        if devil:
+            # The circle should be drawn behind other sprites
+            devil.draw_damage_circle(viewport_surface, (cam_x, cam_y))
+        
         # Gambar semua sprite dengan kondisi filter
         for sprite in all_sprites:
             # Jika dalam mode split screen, filter berdasarkan viewport
@@ -685,20 +690,24 @@ def split_screen_main():
                     # Di viewport kanan hanya gambar player2 dan partner2
                     if offset_x > 0 and sprite.player_id == 1:
                         continue
-            
-            # Hanya gambar sprite jika ada dalam viewport
-            if world_view_rect.colliderect(sprite.rect):
-                if isinstance(sprite, Enemy):
-                    sprite.draw(viewport_surface, (cam_x, cam_y))
+        
+        # Hanya gambar sprite jika ada dalam viewport
+        if world_view_rect.colliderect(sprite.rect):
+            if isinstance(sprite, Enemy):
+                sprite.draw(viewport_surface, (cam_x, cam_y))
+            elif isinstance(sprite, Devil):
+                # For Devil, draw in layers to ensure proper ordering
+                sprite.draw_shadow(viewport_surface, (cam_x, cam_y))
+                sprite.draw_character(viewport_surface, (cam_x, cam_y))
+            else:
+                # Untuk viewport kanan, kita perlu menyesuaikan posisi x kamera
+                if camera.split_mode and offset_x > 0:
+                    # Berikan offset tambahan untuk kompensasi viewport kanan
+                    pos_x = sprite.rect.x + cam_x
+                    pos_y = sprite.rect.y + cam_y
+                    viewport_surface.blit(sprite.image, (pos_x, pos_y))
                 else:
-                    # Untuk viewport kanan, kita perlu menyesuaikan posisi x kamera
-                    if camera.split_mode and offset_x > 0:
-                        # Berikan offset tambahan untuk kompensasi viewport kanan
-                        pos_x = sprite.rect.x + cam_x
-                        pos_y = sprite.rect.y + cam_y
-                        viewport_surface.blit(sprite.image, (pos_x, pos_y))
-                    else:
-                        viewport_surface.blit(sprite.image, (sprite.rect.x + cam_x, sprite.rect.y + cam_y))
+                    viewport_surface.blit(sprite.image, (sprite.rect.x + cam_x, sprite.rect.y + cam_y))
 
     # Continue with the rest of split_screen_main function
     all_sprites = pygame.sprite.Group()
