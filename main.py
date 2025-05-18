@@ -456,7 +456,7 @@ def main():
                         (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
                     ])
     
-            # Draw layers in the correct order:
+            
             # 1. Bottom layer - Red circle
             devil.draw_damage_circle(screen, (camera.x, camera.y))
             # 2. Middle layer - Shadow
