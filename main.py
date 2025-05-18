@@ -478,12 +478,20 @@ def main():
                     interaction_button.show(player)
                 else:
                     interaction_button.hide()
+                    
+                # Draw devil indicator when far away
+                if distance > 300:
+                    angle = math.atan2(dy, dx)
+                    arrow_x = WIDTH//2 + math.cos(angle)*180
+                    arrow_y = HEIGHT//2 + math.sin(angle)*180
+                    pygame.draw.polygon(screen, (255,0,0), [
+                        (arrow_x, arrow_y),
+                        (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
+                        (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
+                    ])
             else:
                 # Hide button if devil is fading out or despawning
                 interaction_button.hide()
-        
-            # Update the interaction button
-            interaction_button.update(dt)
         
         # Notif
         if devil_notif_show and pygame.time.get_ticks() - devil_notif_timer < 2500:
@@ -1158,57 +1166,84 @@ def split_screen_main():
                 
             devil.update(dt, active_player.rect, enemies)
             
-            # Indikator hanya muncul jika devil masih aktif
-            if not getattr(devil, "fading_out", False) and not getattr(devil, "despawning", False):
-                # In split screen, check which player is alive and draw indicator accordingly
-                if camera.split_mode:
-                    # For player 1 (left viewport)
-                    if player1.health > 0:
-                        p1_dx = devil.rect.centerx - player1.rect.centerx
-                        p1_dy = devil.rect.centery - player1.rect.centery
-                        p1_dist = math.hypot(p1_dx, p1_dy)
-                        
-                        if p1_dist > 300:
-                            angle = math.atan2(p1_dy, p1_dx)
-                            arrow_x = (WIDTH//4) + math.cos(angle)*100
-                            arrow_y = HEIGHT//2 + math.sin(angle)*100
-                            pygame.draw.polygon(screen, (255,0,0), [
-                                (arrow_x, arrow_y),
-                                (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
-                                (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
-                            ])
-                            
-                    # For player 2 (right viewport)
-                    if player2.health > 0:
-                        p2_dx = devil.rect.centerx - player2.rect.centerx
-                        p2_dy = devil.rect.centery - player2.rect.centery
-                        p2_dist = math.hypot(p2_dx, p2_dy)
-                        
-                        if p2_dist > 300:
-                            angle = math.atan2(p2_dy, p2_dx)
-                            arrow_x = (WIDTH*3//4) + math.cos(angle)*100
-                            arrow_y = HEIGHT//2 + math.sin(angle)*100
-                            pygame.draw.polygon(screen, (255,0,0), [
-                                (arrow_x, arrow_y),
-                                (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
-                                (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
-                            ])
-                else:
-                    # For single view mode
-                    dx = devil.rect.centerx - active_player.rect.centerx
-                    dy = devil.rect.centery - active_player.rect.centery
-                    dist = math.hypot(dx, dy)
+            # Draw devil indicator regardless of devil state
+            # In split screen, check which player is alive and draw indicator accordingly
+            if camera.split_mode:
+                # For player 1 (left viewport)
+                if player1.health > 0:
+                    p1_dx = devil.rect.centerx - player1.rect.centerx
+                    p1_dy = devil.rect.centery - player1.rect.centery
+                    p1_dist = math.hypot(p1_dx, p1_dy)
                     
-                    if dist > 300:
-                        angle = math.atan2(dy, dx)
-                        arrow_x = WIDTH//2 + math.cos(angle)*180
-                        arrow_y = HEIGHT//2 + math.sin(angle)*180
+                    if p1_dist > 300:
+                        angle = math.atan2(p1_dy, p1_dx)
+                        arrow_x = (WIDTH//4) + math.cos(angle)*100
+                        arrow_y = HEIGHT//2 + math.sin(angle)*100
                         pygame.draw.polygon(screen, (255,0,0), [
                             (arrow_x, arrow_y),
                             (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
                             (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
                         ])
-
+                        
+                # For player 2 (right viewport)
+                if player2.health > 0:
+                    p2_dx = devil.rect.centerx - player2.rect.centerx
+                    p2_dy = devil.rect.centery - player2.rect.centery
+                    p2_dist = math.hypot(p2_dx, p2_dy)
+                    
+                    if p2_dist > 300:
+                        angle = math.atan2(p2_dy, p2_dx)
+                        arrow_x = (WIDTH*3//4) + math.cos(angle)*100
+                        arrow_y = HEIGHT//2 + math.sin(angle)*100
+                        pygame.draw.polygon(screen, (255,0,0), [
+                            (arrow_x, arrow_y),
+                            (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
+                            (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
+                        ])
+            else:
+                # For single view mode
+                dx = devil.rect.centerx - active_player.rect.centerx
+                dy = devil.rect.centery - active_player.rect.centery
+                dist = math.hypot(dx, dy)
+                
+                if dist > 300:
+                    angle = math.atan2(dy, dx)
+                    arrow_x = WIDTH//2 + math.cos(angle)*180
+                    arrow_y = HEIGHT//2 + math.sin(angle)*180
+                    pygame.draw.polygon(screen, (255,0,0), [
+                        (arrow_x, arrow_y),
+                        (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
+                        (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
+                    ])
+                
+            # Only show interaction button if devil is active (not fading out or despawning)
+            if not getattr(devil, "fading_out", False) and not getattr(devil, "despawning", False):
+                # Check for player1 interaction
+                if player1.health > 0:
+                    p1_dx = devil.rect.centerx - player1.rect.centerx
+                    p1_dy = devil.rect.centery - player1.rect.centery
+                    p1_dist = math.hypot(p1_dx, p1_dy)
+                    
+                    if p1_dist <= devil.damage_circle_radius and devil.is_shop_enabled:
+                        interaction_button1.show(player1)
+                    else:
+                        interaction_button1.hide()
+                
+                # Check for player2 interaction
+                if player2.health > 0:
+                    p2_dx = devil.rect.centerx - player2.rect.centerx
+                    p2_dy = devil.rect.centery - player2.rect.centery
+                    p2_dist = math.hypot(p2_dx, p2_dy)
+                    
+                    if p2_dist <= devil.damage_circle_radius and devil.is_shop_enabled:
+                        interaction_button2.show(player2)
+                    else:
+                        interaction_button2.hide()
+            else:
+                # Hide buttons if devil is fading out or despawning
+                interaction_button1.hide()
+                interaction_button2.hide()
+        
         # Notif
         if devil_notif_show and pygame.time.get_ticks() - devil_notif_timer < 2500:
             notif_font = load_font(36)
