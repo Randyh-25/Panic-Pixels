@@ -1,6 +1,6 @@
 import pygame
 import os
-from settings import WIDTH, HEIGHT, WHITE, BLACK
+from settings import WIDTH, HEIGHT, WHITE, BLACK, FONT_PATH
 from utils import load_game_data 
 from settings import load_font 
 
@@ -224,35 +224,137 @@ class InteractionButton:
 class DevilShop:
     def __init__(self):
         self.is_open = False
+        self.selected_item = 0
+        self.items = [
+            {"name": "Health Potion", "price": 50, "desc": "Restore 20 health"},
+            {"name": "Max Health Up", "price": 200, "desc": "+10 max health"},
+            {"name": "Speed Boost", "price": 150, "desc": "+10% movement speed"},
+            {"name": "Damage Boost", "price": 300, "desc": "+15% damage"}
+        ]
+        
+        # Shop UI elements
+        self.border_color = (255, 215, 0)  # Gold color for border
+        self.bg_color = (40, 40, 40, 220)  # Dark semi-transparent background
+        self.title_color = (255, 255, 255)
+        self.text_color = (200, 200, 200)
+        self.highlight_color = (255, 215, 0)
+        self.error_color = (255, 80, 80)
+        
+        # Position and size
+        self.width = 500
+        self.height = 400
+        self.padding = 20
+        self.item_height = 50
+        self.message = ""
+        self.message_timer = 0
+        
+        # Load fonts
+        self.title_font = pygame.font.Font(FONT_PATH, 36)
+        self.item_font = pygame.font.Font(FONT_PATH, 24)
+        self.desc_font = pygame.font.Font(FONT_PATH, 18)
         
     def open(self):
         self.is_open = True
-        print("Devil shop opened!")  # Placeholder for now
+        self.selected_item = 0
+        self.message = ""
         
     def close(self):
         self.is_open = False
-        print("Devil shop closed!")  # Placeholder for now
         
     def update(self, events):
         if not self.is_open:
             return
         
-        # Process shop events here (future implementation)
+        # Handle message timer
+        if self.message:
+            self.message_timer += 1
+            if self.message_timer > 120:  # 2 seconds at 60 FPS
+                self.message = ""
+                self.message_timer = 0
+        
+        # Process input for menu navigation
         for event in events:
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                self.close()
-                
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.close()
+                elif event.key == pygame.K_UP:
+                    self.selected_item = (self.selected_item - 1) % len(self.items)
+                elif event.key == pygame.K_DOWN:
+                    self.selected_item = (self.selected_item + 1) % len(self.items)
+                elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                    self.purchase_item()
+    
+    def purchase_item(self):
+        # This would be connected to the player's money system in a real implementation
+        self.message = f"Purchased {self.items[self.selected_item]['name']}!"
+        self.message_timer = 0
+        
     def draw(self, surface):
         if not self.is_open:
             return
+        
+        # Calculate position (centered on screen)
+        screen_width = surface.get_width()
+        screen_height = surface.get_height()
+        x = (screen_width - self.width) // 2
+        y = (screen_height - self.height) // 2
+        
+        # Create a semi-transparent overlay just for the menu area
+        shop_bg = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        shop_bg.fill(self.bg_color)
+        surface.blit(shop_bg, (x, y))
+        
+        # Draw gold border
+        pygame.draw.rect(surface, self.border_color, 
+                         (x, y, self.width, self.height), 3, border_radius=10)
+        
+        # Draw devil shop title
+        title = self.title_font.render("Devil's Shop", True, self.title_color)
+        title_rect = title.get_rect(midtop=(x + self.width//2, y + self.padding))
+        surface.blit(title, title_rect)
+        
+        # Draw items
+        item_start_y = y + title_rect.height + self.padding * 2
+        for i, item in enumerate(self.items):
+            # Determine if this item is selected
+            is_selected = i == self.selected_item
+            item_color = self.highlight_color if is_selected else self.text_color
             
-        # Placeholder shop UI
-        overlay = pygame.Surface((surface.get_width(), surface.get_height()), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 180))  # Semi-transparent background
+            # Draw selection indicator
+            if is_selected:
+                selection_rect = pygame.Rect(
+                    x + self.padding // 2,
+                    item_start_y + i * (self.item_height + 5),
+                    self.width - self.padding,
+                    self.item_height
+                )
+                pygame.draw.rect(surface, (60, 60, 60), selection_rect, border_radius=5)
+                pygame.draw.rect(surface, self.border_color, selection_rect, 2, border_radius=5)
+            
+            # Item name and price
+            item_text = f"{item['name']} - ${item['price']}"
+            item_surface = self.item_font.render(item_text, True, item_color)
+            surface.blit(item_surface, (
+                x + self.padding * 2,
+                item_start_y + i * (self.item_height + 5) + 10
+            ))
+            
+            # Description below if selected
+            if is_selected:
+                desc_surface = self.desc_font.render(item['desc'], True, self.text_color)
+                surface.blit(desc_surface, (
+                    x + self.padding * 2,
+                    item_start_y + i * (self.item_height + 5) + 35
+                ))
         
-        font = pygame.font.SysFont(None, 48)
-        text = font.render("Devil Shop (Coming Soon)", True, (255, 255, 255))
-        text_rect = text.get_rect(center=(surface.get_width()//2, surface.get_height()//2))
+        # Draw bottom instructions
+        instruction_y = y + self.height - self.padding - 20
+        instructions = self.desc_font.render("↑/↓: Select  |  Enter: Buy  |  ESC: Close", True, self.text_color)
+        instructions_rect = instructions.get_rect(center=(x + self.width//2, instruction_y))
+        surface.blit(instructions, instructions_rect)
         
-        surface.blit(overlay, (0, 0))
-        surface.blit(text, text_rect)
+        # Draw message if any
+        if self.message:
+            message_surf = self.item_font.render(self.message, True, self.highlight_color)
+            message_rect = message_surf.get_rect(midbottom=(x + self.width//2, instruction_y - 20))
+            surface.blit(message_surf, message_rect)
