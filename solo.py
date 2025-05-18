@@ -15,6 +15,7 @@ from particles import ParticleSystem
 from partner import Partner
 from hit_effects import RockHitEffect
 from devil import Devil
+from ui import MiniMap  # Add this to your imports
 
 def create_blur_surface(surface):
     scale = 0.25
@@ -79,7 +80,10 @@ def main(screen, clock, sound_manager, main_menu_callback):
     health_bar = HealthBar()
     money_display = MoneyDisplay()
     xp_bar = XPBar(WIDTH, HEIGHT)
-
+    
+    # Initialize mini map
+    mini_map = MiniMap(game_map.width, game_map.height, WIDTH, HEIGHT)
+    
     death_transition = False
     death_alpha = 0
     blur_surface = None
@@ -226,6 +230,12 @@ def main(screen, clock, sound_manager, main_menu_callback):
                                 cheat_message = "Devil muncul!"
                             else:
                                 cheat_message = "Devil sudah ada!"
+                        elif cheat_input == "highdamage":
+                            for projectile in projectile_pool:
+                                if projectile.alive():
+                                    projectile.damage = 1000
+                            cheat_message = "Damage tinggi!"
+
                         else:
                             cheat_message = "Command tidak dikenal."
                         cheat_input = ""
@@ -463,6 +473,17 @@ def main(screen, clock, sound_manager, main_menu_callback):
             screen.blit(notif, notif_rect)
         else:
             devil_notif_show = False
+
+        # Draw UI elements
+        health_bar.draw(screen, player.health, player.max_health)
+        money_display.draw(screen, player.session_money)
+        xp_bar.draw(screen, player.xp, player.max_xp, player.level)
+        
+        # Draw mini map
+        mini_map.draw(screen, player, enemies, devil)
+        
+        # Draw timer
+        screen.blit(timer_surface, timer_rect)
 
         # Draw interaction button after drawing player (should be on top)
         interaction_button.draw(screen, (camera.x, camera.y))

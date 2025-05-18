@@ -358,3 +358,74 @@ class DevilShop:
             message_surf = self.item_font.render(self.message, True, self.highlight_color)
             message_rect = message_surf.get_rect(midbottom=(x + self.width//2, instruction_y - 20))
             surface.blit(message_surf, message_rect)
+
+class MiniMap:
+    def __init__(self, map_width, map_height, screen_width, screen_height):
+        self.map_width = map_width
+        self.map_height = map_height
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        
+        # Mini map dimensions and position
+        self.width = 180
+        self.height = 180
+        self.padding = 10
+        self.x = screen_width - self.width - self.padding
+        self.y = self.padding
+        
+        # Mini map scale factors
+        self.scale_x = self.width / map_width
+        self.scale_y = self.height / map_height
+        
+        # Create the mini map surface with semi-transparency
+        self.surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        
+        # Entity colors
+        self.player_color = (0, 255, 0)          # Green for player
+        self.enemy_color = (255, 0, 0)           # Red for enemies
+        self.devil_color = (150, 0, 0)           # Dark red for devil outline
+        self.devil_color_inner = (0, 0, 0)       # Black for devil inner circle
+        
+        # Entity sizes
+        self.player_size = 5
+        self.enemy_size = 3
+        self.devil_size = 7
+    
+    def update_map_size(self, map_width, map_height):
+        """Update map size if needed"""
+        self.map_width = map_width
+        self.map_height = map_height
+        self.scale_x = self.width / map_width
+        self.scale_y = self.height / map_height
+    
+    def draw(self, screen, player, enemies=None, devil=None):
+        # Clear the surface with translucent dark background
+        self.surface.fill((20, 20, 20, 180))
+        
+        # Draw border
+        pygame.draw.rect(self.surface, (200, 200, 200), 
+                         (0, 0, self.width, self.height), 2)
+        
+        # Draw enemies
+        if enemies:
+            for enemy in enemies:
+                if not enemy.is_dying:  # Only show active enemies
+                    mini_x = int(enemy.rect.centerx * self.scale_x)
+                    mini_y = int(enemy.rect.centery * self.scale_y)
+                    pygame.draw.circle(self.surface, self.enemy_color, (mini_x, mini_y), self.enemy_size)
+        
+        # Draw devil if exists
+        if devil and not getattr(devil, "fading_out", False):
+            mini_x = int(devil.rect.centerx * self.scale_x)
+            mini_y = int(devil.rect.centery * self.scale_y)
+            # Draw devil as a larger circle with two colors
+            pygame.draw.circle(self.surface, self.devil_color, (mini_x, mini_y), self.devil_size)
+            pygame.draw.circle(self.surface, self.devil_color_inner, (mini_x, mini_y), self.devil_size - 2)
+        
+        # Draw player (draw last so it's on top)
+        mini_x = int(player.rect.centerx * self.scale_x)
+        mini_y = int(player.rect.centery * self.scale_y)
+        pygame.draw.circle(self.surface, self.player_color, (mini_x, mini_y), self.player_size)
+        
+        # Draw the mini map on the screen
+        screen.blit(self.surface, (self.x, self.y))
