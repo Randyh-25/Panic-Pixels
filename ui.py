@@ -1,4 +1,5 @@
 import pygame
+import os
 from settings import WIDTH, HEIGHT, WHITE, BLACK
 from utils import load_game_data 
 from settings import load_font 
@@ -172,3 +173,86 @@ class SplitScreenUI:
             self.money_display.draw(screen, total_session_money)
         else:
             self.draw(screen, player1, player2)
+
+class InteractionButton:
+    def __init__(self):
+        self.frames = []
+        self.load_frames()
+        self.current_frame = 0
+        self.animation_timer = 0
+        self.animation_speed = 0.15  # seconds between frames
+        self.is_visible = False
+        self.target_entity = None
+        
+    def load_frames(self):
+        button_path = os.path.join("assets", "UI", "btn")
+        try:
+            self.frames.append(pygame.image.load(os.path.join(button_path, "E0.png")).convert_alpha())
+            self.frames.append(pygame.image.load(os.path.join(button_path, "E1.png")).convert_alpha())
+        except pygame.error as e:
+            print(f"Error loading button frames: {e}")
+            
+    def update(self, dt):
+        if not self.is_visible:
+            return
+            
+        self.animation_timer += dt
+        if self.animation_timer >= self.animation_speed:
+            self.animation_timer = 0
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+    
+    def show(self, target_entity):
+        self.is_visible = True
+        self.target_entity = target_entity
+        
+    def hide(self):
+        self.is_visible = False
+        self.target_entity = None
+        
+    def draw(self, surface, camera_offset):
+        if not self.is_visible or not self.target_entity or not self.frames:
+            return
+        
+        current_image = self.frames[self.current_frame]
+        
+        # Position the button above the target entity
+        button_x = self.target_entity.rect.centerx - current_image.get_width() // 2
+        button_y = self.target_entity.rect.top - current_image.get_height() - 10
+        
+        surface.blit(current_image, (button_x + camera_offset[0], button_y + camera_offset[1]))
+
+class DevilShop:
+    def __init__(self):
+        self.is_open = False
+        
+    def open(self):
+        self.is_open = True
+        print("Devil shop opened!")  # Placeholder for now
+        
+    def close(self):
+        self.is_open = False
+        print("Devil shop closed!")  # Placeholder for now
+        
+    def update(self, events):
+        if not self.is_open:
+            return
+        
+        # Process shop events here (future implementation)
+        for event in events:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.close()
+                
+    def draw(self, surface):
+        if not self.is_open:
+            return
+            
+        # Placeholder shop UI
+        overlay = pygame.Surface((surface.get_width(), surface.get_height()), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))  # Semi-transparent background
+        
+        font = pygame.font.SysFont(None, 48)
+        text = font.render("Devil Shop (Coming Soon)", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(surface.get_width()//2, surface.get_height()//2))
+        
+        surface.blit(overlay, (0, 0))
+        surface.blit(text, text_rect)

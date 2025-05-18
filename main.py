@@ -11,7 +11,7 @@ from projectile import Projectile
 from experience import Experience, LevelUpEffect
 from utils import pause_menu, highest_score_menu, load_game_data, save_game_data, splitscreen_game_over
 from maps import Map
-from ui import HealthBar, MoneyDisplay, XPBar, SplitScreenUI, render_text_with_border
+from ui import HealthBar, MoneyDisplay, XPBar, SplitScreenUI, render_text_with_border, InteractionButton, DevilShop
 from settings import load_font
 from sound_manager import SoundManager
 from particles import ParticleSystem
@@ -161,33 +161,53 @@ def main():
     devil_notif_timer = 0
     devil_notif_show = False
 
+    # Add interaction button and shop
+    interaction_button = InteractionButton()
+    devil_shop = DevilShop()
+    
     while running:
         dt = clock.tick(FPS) / 1000.0
-
+        
+        # Collect events before processing to pass to shop
+        current_events = []
         for event in pygame.event.get():
+            current_events.append(event)
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    paused = True
-                    pause_start = pygame.time.get_ticks()  # MULAI PAUSE
-                    pause_menu(screen, main_menu)
-                    paused = False
-                    if pause_start is not None:
-                        pause_ticks += pygame.time.get_ticks() - pause_start  # TAMBAHKAN DURASI PAUSE
-                        pause_start = None
-                elif event.key == pygame.K_BACKQUOTE:  # Tombol `
+                    if devil_shop.is_open:
+                        devil_shop.close()
+                    else:
+                        paused = True
+                        pause_start = pygame.time.get_ticks()  # MULAI PAUSE
+                        pause_menu(screen, main_menu)
+                        paused = False
+                        if pause_start is not None:
+                            pause_ticks += pygame.time.get_ticks() - pause_start  # TAMBAHKAN DURASI PAUSE
+                            pause_start = None
+                # Add cheat console toggle
+                elif event.key == pygame.K_BACKQUOTE:
                     cheat_mode = not cheat_mode
-                    cheat_input = ""
-                    cheat_message = ""
                     if cheat_mode:
                         cheat_pause_start = pygame.time.get_ticks()
                     else:
                         if cheat_pause_start is not None:
                             cheat_pause_ticks += pygame.time.get_ticks() - cheat_pause_start
                             cheat_pause_start = None
-            elif event.type == pygame.TEXTINPUT and cheat_mode:
-                cheat_input += event.text
+                    cheat_input = ""
+                    cheat_message = ""
+                # Add E key to open shop when interaction is possible
+                elif event.key == pygame.K_e:
+                    if devil and devil.can_interact():
+                        devil_shop.open()
+
+        if devil_shop.is_open:
+            devil_shop.update(current_events)
+            # Skip regular game updates while shop is open
+            devil_shop.draw(screen)
+            pygame.display.flip()
+            continue
 
         if paused:
             continue
@@ -216,45 +236,49 @@ def main():
 
             pygame.display.flip()
 
-            # Handle enter and backspace
+            # Handle text input for cheat console
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_RETURN]:
-                # Process cheat command
-                if cheat_input == "orkaybanh":
-                    player.session_money += 10000
-                    cheat_message = "Money +10000!"
-                elif cheat_input == "armordaribapak":
-                    if original_max_health is None:
-                        original_max_health = player.max_health
-                        original_health = player.health
-                    player.max_health = 1000
-                    player.health = 1000
-                    cheat_message = "Armor dari bapak aktif!"
-                elif cheat_input == "rakyatbiasa":
-                    if original_max_health is not None:
-                        player.max_health = original_max_health
-                        player.health = original_health
-                        original_max_health = None
-                        original_health = None
-                    cheat_message = "Cheat dinonaktifkan!"
-                elif cheat_input == "timeheist":
-                    session_start_ticks -= 230 * 1000
-                    cheat_message = "Waktu dipercepat +3:50!"
-                elif cheat_input == "dealwiththedevil":
-                    if devil is None:
-                        devil = Devil(game_map.width, game_map.height)
-                        all_sprites.add(devil)
-                        cheat_message = "Devil muncul!"
-                    else:
-                        cheat_message = "Devil sudah ada!"
-                else:
-                    cheat_message = "Command tidak dikenal."
-                cheat_input = ""
-                pygame.time.wait(400)  # Prevent rapid enter
-            elif keys[pygame.K_BACKSPACE]:
-                cheat_input = cheat_input[:-1]
-                pygame.time.wait(100)
-            continue  # Skip game update while cheat menu open
+            for event in current_events:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        # Process cheat command
+                        if cheat_input == "orkaybanh":
+                            player.session_money += 10000
+                            cheat_message = "Money +10000!"
+                        elif cheat_input == "armordaribapak":
+                            if original_max_health is None:
+                                original_max_health = player.max_health
+                                original_health = player.health
+                            player.max_health = 1000
+                            player.health = 1000
+                            cheat_message = "Armor dari bapak aktif!"
+                        elif cheat_input == "rakyatbiasa":
+                            if original_max_health is not None:
+                                player.max_health = original_max_health
+                                player.health = original_health
+                                original_max_health = None
+                                original_health = None
+                            cheat_message = "Cheat dinonaktifkan!"
+                        elif cheat_input == "timeheist":
+                            session_start_ticks -= 230 * 1000
+                            cheat_message = "Waktu dipercepat +3:50!"
+                        elif cheat_input == "dealwiththedevil":
+                            if devil is None:
+                                devil = Devil(game_map.width, game_map.height)
+                                all_sprites.add(devil)
+                                cheat_message = "Devil muncul!"
+                            else:
+                                cheat_message = "Devil sudah ada!"
+                        else:
+                            cheat_message = "Command tidak dikenal."
+                        cheat_input = ""
+                    elif event.key == pygame.K_BACKSPACE:
+                        cheat_input = cheat_input[:-1]
+                    elif event.key >= 32 and event.key <= 126:  # Printable ASCII characters
+                        cheat_input += event.unicode
+            
+            # Continue to next frame, skipping regular game updates
+            continue
 
         enemy_spawn_timer += 1
         MAX_ENEMIES = 15
@@ -441,29 +465,26 @@ def main():
 
         if devil:
             devil.update(dt, player.rect, enemies)
-            # Indikator hanya muncul jika devil masih aktif
+    
+            # Only show interaction button if devil is active (not fading out or despawning)
             if not getattr(devil, "fading_out", False) and not getattr(devil, "despawning", False):
+                # Check if player is in range for interaction
                 dx = devil.rect.centerx - player.rect.centerx
                 dy = devil.rect.centery - player.rect.centery
-                dist = math.hypot(dx, dy)
-                if dist > 300:
-                    angle = math.atan2(dy, dx)
-                    arrow_x = WIDTH//2 + math.cos(angle)*180
-                    arrow_y = HEIGHT//2 + math.sin(angle)*180
-                    pygame.draw.polygon(screen, (255,0,0), [
-                        (arrow_x, arrow_y),
-                        (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
-                        (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
-                    ])
-    
-            # Draw layers in the correct order:
-            # 1. Bottom layer - Red circle
-            devil.draw_damage_circle(screen, (camera.x, camera.y))
-            # 2. Middle layer - Shadow
-            devil.draw_shadow(screen, (camera.x, camera.y))
-            # 3. Top layer - Character
-            devil.draw_character(screen, (camera.x, camera.y))
-
+                distance = math.hypot(dx, dy)
+                
+                # Show interaction button when player is in range
+                if distance <= devil.damage_circle_radius and devil.is_shop_enabled:
+                    interaction_button.show(player)
+                else:
+                    interaction_button.hide()
+            else:
+                # Hide button if devil is fading out or despawning
+                interaction_button.hide()
+        
+            # Update the interaction button
+            interaction_button.update(dt)
+        
         # Notif
         if devil_notif_show and pygame.time.get_ticks() - devil_notif_timer < 2500:
             notif_font = load_font(36)
@@ -473,6 +494,9 @@ def main():
         else:
             devil_notif_show = False
 
+        # Draw interaction button after drawing player (should be on top)
+        interaction_button.draw(screen, (camera.x, camera.y))
+        
         pygame.display.flip()
 
     pygame.quit()
@@ -604,6 +628,12 @@ def split_screen_main():
     map_path = os.path.join("assets", "maps", "desert", "plain.png")
     map_type = "desert"  # Default to desert map
     
+    cheat_mode = False
+    cheat_input = ""
+    cheat_message = ""
+    original_max_health = None
+    original_health = None
+
     try:
         game_map = Map(map_path)
     except Exception as e:
@@ -737,42 +767,149 @@ def split_screen_main():
     cheat_pause_ticks = 0      # <--- Tambahkan ini
     cheat_pause_start = None   # <--- Tambahkan ini
 
+    # Add interaction button and shop
+    interaction_button1 = InteractionButton()
+    interaction_button2 = InteractionButton()
+    devil_shop = DevilShop()
+    
     while running:
         dt = clock.tick(FPS) / 1000.0
-
+        
+        # Collect events before processing to pass to shop
+        current_events = []
         for event in pygame.event.get():
+            current_events.append(event)
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                paused = True
-                pause_start = pygame.time.get_ticks()  # MULAI PAUSE
-                pause_menu(screen, main_menu)
-                paused = False
-                if pause_start is not None:
-                    pause_ticks += pygame.time.get_ticks() - pause_start  # TAMBAHKAN DURASI PAUSE
-                    pause_start = None
-
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    if devil_shop.is_open:
+                        devil_shop.close()
+                    else:
+                        paused = True
+                        pause_start = pygame.time.get_ticks()  # MULAI PAUSE
+                        pause_menu(screen, main_menu)
+                        paused = False
+                        if pause_start is not None:
+                            pause_ticks += pygame.time.get_ticks() - pause_start  # TAMBAHKAN DURASI PAUSE
+                            pause_start = None
+                # Add cheat console toggle
+                elif event.key == pygame.K_BACKQUOTE:
+                    cheat_mode = not cheat_mode
+                    if cheat_mode:
+                        cheat_pause_start = pygame.time.get_ticks()
+                    else:
+                        if cheat_pause_start is not None:
+                            cheat_pause_ticks += pygame.time.get_ticks() - cheat_pause_start
+                            cheat_pause_start = None
+                    cheat_input = ""
+                    cheat_message = ""
+                # Add E key to open shop when interaction is possible
+                elif event.key == pygame.K_e:
+                    if devil and devil.can_interact():
+                        devil_shop.open()
+        
+        if devil_shop.is_open:
+            devil_shop.update(current_events)
+            # Skip regular game updates while shop is open
+            devil_shop.draw(screen)
+            pygame.display.flip()
+            continue
+            
         if paused:
             continue
+            
+        # Cheat input handling
+        if cheat_mode:
+            # Draw semi-transparent overlay (benar-benar transparan, game tetap terlihat)
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 80))  # alpha 80, makin kecil makin transparan
+            screen.blit(overlay, (0, 0))
 
-        # Spawn enemies
+            # Draw input box
+            font_cheat = load_font(36)
+            box_rect = pygame.Rect(WIDTH//2 - 200, HEIGHT//2 - 40, 400, 80)
+            pygame.draw.rect(screen, (40, 40, 40), box_rect, border_radius=8)
+            pygame.draw.rect(screen, (200, 200, 200), box_rect, 2, border_radius=8)
+
+            input_surface = font_cheat.render(cheat_input, True, (255, 255, 0))
+            screen.blit(input_surface, (box_rect.x + 20, box_rect.y + 20))
+
+            # Draw message if any, geser ke bawah kotak
+            if cheat_message:
+                msg_surface = font_cheat.render(cheat_message, True, (0, 255, 0))
+                msg_rect = msg_surface.get_rect(center=(WIDTH//2, box_rect.y + box_rect.height + 30))
+                screen.blit(msg_surface, msg_rect)
+
+            pygame.display.flip()
+
+            # Handle text input for cheat console
+            keys = pygame.key.get_pressed()
+            for event in current_events:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        # Process cheat command
+                        if cheat_input == "orkaybanh":
+                            player.session_money += 10000
+                            cheat_message = "Money +10000!"
+                        elif cheat_input == "armordaribapak":
+                            if original_max_health is None:
+                                original_max_health = player.max_health
+                                original_health = player.health
+                            player.max_health = 1000
+                            player.health = 1000
+                            cheat_message = "Armor dari bapak aktif!"
+                        elif cheat_input == "rakyatbiasa":
+                            if original_max_health is not None:
+                                player.max_health = original_max_health
+                                player.health = original_health
+                                original_max_health = None
+                                original_health = None
+                            cheat_message = "Cheat dinonaktifkan!"
+                        elif cheat_input == "timeheist":
+                            session_start_ticks -= 230 * 1000
+                            cheat_message = "Waktu dipercepat +3:50!"
+                        elif cheat_input == "dealwiththedevil":
+                            if devil is None:
+                                devil = Devil(game_map.width, game_map.height)
+                                all_sprites.add(devil)
+                                cheat_message = "Devil muncul!"
+                            else:
+                                cheat_message = "Devil sudah ada!"
+                        else:
+                            cheat_message = "Command tidak dikenal."
+                        cheat_input = ""
+                    elif event.key == pygame.K_BACKSPACE:
+                        cheat_input = cheat_input[:-1]
+                    elif event.key >= 32 and event.key <= 126:  # Printable ASCII characters
+                        cheat_input += event.unicode
+            
+            # Continue to next frame, skipping regular game updates
+            continue
+
         enemy_spawn_timer += 1
-        MAX_ENEMIES = 20  # Increased for 2 players
+        MAX_ENEMIES = 15
         if enemy_spawn_timer >= 60 and len(enemies) < MAX_ENEMIES:
-            # Spawn near random player
-            target_player = random.choice([player1, player2])
-            enemy = Enemy((target_player.rect.centerx, target_player.rect.centery))
+            # Spawn enemy near the midpoint between players or near the active player
+            if player1.health <= 0:
+                spawn_center = player2.rect.center
+            elif player2.health <= 0:
+                spawn_center = player1.rect.center
+            else:
+                # Use midpoint between players
+                spawn_center = ((player1.rect.centerx + player2.rect.centerx) // 2,
+                             (player1.rect.centery + player2.rect.centery) // 2)
+                
+            enemy = Enemy(spawn_center)
             all_sprites.add(enemy)
             enemies.add(enemy)
             enemy_spawn_timer = 0
-
-        # Handle projectiles for both players
+            
+        # Also fix partner shooting in split screen mode
         projectile_timer += 1
         if projectile_timer >= 30 and len(enemies) > 0:
-            for player, partner, pool, projs in [
-                (player1, partner1, projectile_pool1, projectiles1),
-                (player2, partner2, projectile_pool2, projectiles2)
-            ]:
+            # Handle partner1 shooting
+            if player1.health > 0:
                 closest_enemy = None
                 min_dist = float('inf')
                 shoot_radius = 500
@@ -782,26 +919,59 @@ def split_screen_main():
                     if enemy.is_dying:
                         continue
                         
-                    dist = math.hypot(enemy.rect.centerx - player.rect.centerx,
-                                  enemy.rect.centery - player.rect.centery)
+                    dist = math.hypot(enemy.rect.centerx - player1.rect.centerx,
+                                  enemy.rect.centery - player1.rect.centery)
                     if dist < min_dist and dist < shoot_radius:
                         min_dist = dist
                         closest_enemy = enemy
-
+                        
                 if closest_enemy:
-                    for projectile in pool:
+                    for projectile in projectile_pool1:
                         if not projectile.alive():
-                            start_pos = partner.get_shooting_position()
+                            start_pos = partner1.get_shooting_position()
                             target_pos = (closest_enemy.rect.centerx, closest_enemy.rect.centery)
-                            partner.shoot_at(target_pos)
+                            
+                            partner1.shoot_at(target_pos)
+                            
                             projectile.reset(start_pos, target_pos)
-                            projectile.add(all_sprites, projs)
-                            projectile_timer = 0
+                            projectile.add(all_sprites, projectiles1)
                             break
                 else:
-                    partner.stop_shooting()
+                    partner1.stop_shooting()
+            
+            # Handle partner2 shooting
+            if player2.health > 0:
+                closest_enemy = None
+                min_dist = float('inf')
+                shoot_radius = 500
+                
+                for enemy in enemies:
+                    # Skip enemy yang sedang dalam animasi mati
+                    if enemy.is_dying:
+                        continue
+                        
+                    dist = math.hypot(enemy.rect.centerx - player2.rect.centerx,
+                                  enemy.rect.centery - player2.rect.centery)
+                    if dist < min_dist and dist < shoot_radius:
+                        min_dist = dist
+                        closest_enemy = enemy
+                        
+                if closest_enemy:
+                    for projectile in projectile_pool2:
+                        if not projectile.alive():
+                            start_pos = partner2.get_shooting_position()
+                            target_pos = (closest_enemy.rect.centerx, closest_enemy.rect.centery)
+                            
+                            partner2.shoot_at(target_pos)
+                            
+                            projectile.reset(start_pos, target_pos)
+                            projectile.add(all_sprites, projectiles2)
+                            break
+                else:
+                    partner2.stop_shooting()
+                    
+            projectile_timer = 0
 
-        # Update all game objects
         player1.update()
         player2.update()
         partner1.update(dt)
@@ -978,29 +1148,66 @@ def split_screen_main():
             next_devil_time = devil_spawn_times[-1]
 
         if devil:
-            devil.update(dt, player.rect, enemies)
+            # Update using the correct player
+            if player1.health <= 0:
+                active_player = player2
+            elif player2.health <= 0:
+                active_player = player1
+            else:
+                active_player = player1  # Default to player1 when both alive
+                
+            devil.update(dt, active_player.rect, enemies)
+            
             # Indikator hanya muncul jika devil masih aktif
             if not getattr(devil, "fading_out", False) and not getattr(devil, "despawning", False):
-                dx = devil.rect.centerx - player.rect.centerx
-                dy = devil.rect.centery - player.rect.centery
-                dist = math.hypot(dx, dy)
-                if dist > 300:
-                    angle = math.atan2(dy, dx)
-                    arrow_x = WIDTH//2 + math.cos(angle)*180
-                    arrow_y = HEIGHT//2 + math.sin(angle)*180
-                    pygame.draw.polygon(screen, (255,0,0), [
-                        (arrow_x, arrow_y),
-                        (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
-                        (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
-                    ])
-    
-            # Draw layers in the correct order:
-            # 1. Bottom layer - Red circle
-            devil.draw_damage_circle(screen, (camera.x, camera.y))
-            # 2. Middle layer - Shadow  
-            devil.draw_shadow(screen, (camera.x, camera.y))
-            # 3. Top layer - Character
-            devil.draw_character(screen, (camera.x, camera.y))
+                # In split screen, check which player is alive and draw indicator accordingly
+                if camera.split_mode:
+                    # For player 1 (left viewport)
+                    if player1.health > 0:
+                        p1_dx = devil.rect.centerx - player1.rect.centerx
+                        p1_dy = devil.rect.centery - player1.rect.centery
+                        p1_dist = math.hypot(p1_dx, p1_dy)
+                        
+                        if p1_dist > 300:
+                            angle = math.atan2(p1_dy, p1_dx)
+                            arrow_x = (WIDTH//4) + math.cos(angle)*100
+                            arrow_y = HEIGHT//2 + math.sin(angle)*100
+                            pygame.draw.polygon(screen, (255,0,0), [
+                                (arrow_x, arrow_y),
+                                (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
+                                (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
+                            ])
+                            
+                    # For player 2 (right viewport)
+                    if player2.health > 0:
+                        p2_dx = devil.rect.centerx - player2.rect.centerx
+                        p2_dy = devil.rect.centery - player2.rect.centery
+                        p2_dist = math.hypot(p2_dx, p2_dy)
+                        
+                        if p2_dist > 300:
+                            angle = math.atan2(p2_dy, p2_dx)
+                            arrow_x = (WIDTH*3//4) + math.cos(angle)*100
+                            arrow_y = HEIGHT//2 + math.sin(angle)*100
+                            pygame.draw.polygon(screen, (255,0,0), [
+                                (arrow_x, arrow_y),
+                                (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
+                                (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
+                            ])
+                else:
+                    # For single view mode
+                    dx = devil.rect.centerx - active_player.rect.centerx
+                    dy = devil.rect.centery - active_player.rect.centery
+                    dist = math.hypot(dx, dy)
+                    
+                    if dist > 300:
+                        angle = math.atan2(dy, dx)
+                        arrow_x = WIDTH//2 + math.cos(angle)*180
+                        arrow_y = HEIGHT//2 + math.sin(angle)*180
+                        pygame.draw.polygon(screen, (255,0,0), [
+                            (arrow_x, arrow_y),
+                            (arrow_x - 10*math.sin(angle), arrow_y + 10*math.cos(angle)),
+                            (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
+                        ])
 
         # Notif
         if devil_notif_show and pygame.time.get_ticks() - devil_notif_timer < 2500:
@@ -1011,6 +1218,22 @@ def split_screen_main():
         else:
             devil_notif_show = False
 
+        # Draw interaction buttons on appropriate viewports
+        if camera.split_mode:
+            # For left viewport
+            if interaction_button1.is_visible:
+                interaction_button1.draw(screen.subsurface(left_viewport), (camera.x, camera.y))
+                
+            # For right viewport
+            if interaction_button2.is_visible:
+                interaction_button2.draw(screen.subsurface(right_viewport), (camera.x2, camera.y2))
+        else:
+            # For single view
+            if interaction_button1.is_visible:
+                interaction_button1.draw(screen, (camera.x, camera.y))
+            if interaction_button2.is_visible:  
+                interaction_button2.draw(screen, (camera.x, camera.y))
+                
         pygame.display.flip()
 
     pygame.quit()

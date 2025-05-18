@@ -37,10 +37,14 @@ class Devil(pygame.sprite.Sprite):
         self.shadow_img = pygame.image.load(os.path.join("assets", "shadow.png")).convert_alpha()
         self.shadow_img = pygame.transform.scale(self.shadow_img, (DEVIL_SIZE[0], DEVIL_SIZE[1] // 3))
 
-        # Circle damage area
+        # Circle damage area - now repurposed for shop interaction
         self.damage_circle_radius = DAMAGE_CIRCLE_RADIUS
         self.damage_circle_color = (255, 0, 0, 80)  # Semi-transparent red
         self.damage_circle_active = False
+        
+        # New: Interaction properties
+        self.is_player_in_range = False
+        self.is_shop_enabled = True  # Devil is now a shopkeeper
 
         self.frame_idx = 0
         self.anim_timer = 0
@@ -72,6 +76,7 @@ class Devil(pygame.sprite.Sprite):
         self.despawn_anim_timer = 0
 
         self.damage_active = False  # Flag for damage area
+
         self.fading_out = False     # Untuk status fade out
         self.fx_alpha = 255         # Untuk fade out setelah despawn
 
@@ -123,82 +128,101 @@ class Devil(pygame.sprite.Sprite):
             self.image = self.spawn_frames[0]
             return
 
-        # Cek proximity untuk trigger guard
-        if self.rect.colliderect(player_rect.inflate(80, 80)):
+        # Check if player is in interaction range (inside circle)
+        if player_rect:
+            dx = self.rect.centerx - player_rect.centerx
+            dy = self.rect.centery - player_rect.centery
+            distance = math.sqrt(dx*dx + dy*dy)
+            
+            # Update player in range status
+            self.is_player_in_range = distance <= self.damage_circle_radius
+            
+            # Activate circle when player is nearby
+            if self.is_player_in_range:
+                self.damage_circle_active = True
+            else:
+                # If player moved away
+                if self.state == "guard":
+                    self.state = "idle"
+                    self.state_timer = 0
+                    self.frame_idx = 0
+                self.damage_circle_active = False
+        
+        # Old checking code (can be simplified)
+        if player_rect and self.rect.colliderect(player_rect.inflate(80, 80)):
             if self.state == "idle":
                 self.state = "guard"
                 self.state_timer = 0
                 self.guard_idx = 0
                 self.guard_completed = False
                 self.damage_circle_active = True
-        else:
-            if self.state == "guard":
-                self.state = "idle"
+    
+        # State machine
+        if self.state == "spawn":
+            self.state_timer += dt
+            if self.state_timer >= 0.1:
                 self.state_timer = 0
-                self.frame_idx = 0
-                self.damage_circle_active = False
-
-        # --- State machine for guard/idle switching ---
-        self.state_timer += dt
-        if self.state == "guard":
-            self.guard_timer += dt
-            if self.guard_timer >= self.guard_speed:
-                self.guard_timer = 0
-                if self.guard_idx < len(self.guard_frames) - 1:
-                    self.guard_idx += 1
+                self.spawn_frame += 1
+                if self.spawn_frame >= len(self.spawn_frames):
+                    self.state = "idle"
+                    self.frame_idx = 0
+                    self.image = self.idle_frames[0]
                 else:
-                    # Keep last frame showing and mark animation as completed
-                    self.guard_completed = True
-            
-            self.image = self.guard_frames[self.guard_idx]
-            
-            # Only transition to idle if both timer expired AND animation completed
-            if self.state_timer >= self.guard_duration and self.guard_completed:
-                self.state = "idle"
-                self.state_timer = 0
-                self.frame_idx = 0
-                self.damage_active = True  # Activate damage after guard animation
+                    self.image = self.spawn_frames[self.spawn_frame]
         elif self.state == "idle":
-            self.anim_timer += dt
-            if self.anim_timer >= self.anim_speed:
-                self.anim_timer = 0
-                self.frame_idx = (self.frame_idx + 1) % len(self.idle_frames)
-                # Make sure image is updated every frame
-                self.image = self.idle_frames[self.frame_idx]
-                
-            if self.state_timer >= self.idle_duration:
-                self.state = "guard"
+            self.state_timer += dt
+            if self.state_timer >= 0.1:  # 100ms per frame
                 self.state_timer = 0
-                self.guard_idx = 0
-                self.guard_completed = False
+                self.frame_idx = (self.frame_idx + 1) % len(self.idle_frames)
+                self.image = self.idle_frames[self.frame_idx]
+        elif self.state == "guard":
+            self.state_timer += dt
+            if self.state_timer >= 0.1:  # 100ms per frame
+                self.state_timer = 0
+                if not self.guard_completed:
+                    self.guard_idx += 1
+                    if self.guard_idx >= len(self.guard_frames):
+                        self.guard_completed = True
+                        self.guard_idx = len(self.guard_frames) - 1
+                        self.damage_active = True
+                
+                self.image = self.guard_frames[self.guard_idx]
 
-        # Check for enemies in damage circle
+        # Always kill enemies in circle - even if shop mode is enabled
+        # This combines protection functionality with shop functionality
         if (self.damage_circle_active or self.damage_active) and enemies_group is not None:
             circle_center = self.rect.center
             for enemy in enemies_group:
+                # Skip enemies that are already dying
+                if enemy.is_dying:
+                    continue
+                    
                 # Calculate distance from enemy to devil
                 dx = enemy.rect.centerx - circle_center[0]
                 dy = enemy.rect.centery - circle_center[1]
                 distance = math.sqrt(dx*dx + dy*dy)
                 
-                # If enemy within circle radius and not already dying
-                if distance <= self.damage_circle_radius and not enemy.is_dying:
+                # If enemy within circle radius
+                if distance <= self.damage_circle_radius:
                     enemy.health = 0
                     enemy.is_dying = True
                     enemy.killed_by_devil = True  # This flag prevents XP drop
     
     # Split the drawing methods to control layering
     def draw_damage_circle(self, surface, camera_offset):
-        """Draw only the damage circle layer"""
+        """Draw only the damage circle layer - now repurposed as interaction circle"""
         if self.damage_circle_active or self.damage_active:
             # Create a transparent surface for the circle
             circle_surface = pygame.Surface((self.damage_circle_radius * 2, 
                                            self.damage_circle_radius * 2), 
                                            pygame.SRCALPHA)
             
+            # Changed color to be friendlier - more golden/yellow for shop
+            circle_color = (255, 215, 0, 60) if self.is_shop_enabled else self.damage_circle_color
+            
             # Draw circle on the transparent surface
             pygame.draw.circle(circle_surface, 
-                              self.damage_circle_color, 
+                              circle_color, 
                               (self.damage_circle_radius, self.damage_circle_radius), 
                               self.damage_circle_radius)
             
@@ -228,7 +252,7 @@ class Devil(pygame.sprite.Sprite):
         if self.fading_out:
             img.set_alpha(self.fx_alpha)
         surface.blit(img, (self.rect.x + camera_offset[0], self.rect.y + camera_offset[1]))
-        
+    
     def draw(self, surface, camera_offset):
         """
         Main draw method that implements the layering:
@@ -244,3 +268,6 @@ class Devil(pygame.sprite.Sprite):
         
         # Layer 1 (top) - Character
         self.draw_character(surface, camera_offset)
+    
+    def can_interact(self):
+        return self.is_player_in_range and self.is_shop_enabled
