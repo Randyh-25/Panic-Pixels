@@ -124,7 +124,7 @@ def main(screen, clock, sound_manager, main_menu_callback):
     # Add interaction button and shop
     interaction_button = InteractionButton()
     from ui import DevilShop
-    devil_shop = DevilShop()
+    devil_shop = DevilShop(sound_manager)
     
     while running:
         dt = clock.tick(FPS) / 1000.0

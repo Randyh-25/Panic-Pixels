@@ -25,32 +25,17 @@ def load_game_data():
         return 0, 0, "" 
 
 def pause_menu(screen, main_menu_callback):
-    theme = pygame_menu.themes.THEME_DARK.copy()
-    theme.widget_font = FONT_PATH
-    theme.title_font = FONT_PATH
+    from main import create_themed_menu
     
-    menu = pygame_menu.Menu('Paused', WIDTH, HEIGHT, theme=theme)
-    menu.add.button('Resume', menu.disable)  # Ini akan menutup menu pause
+    menu = create_themed_menu('Paused', WIDTH, HEIGHT)
+    menu.add.button('Resume', menu.disable)  # This will close the pause menu
     menu.add.button('Main Menu', main_menu_callback)  
     menu.mainloop(screen)
 
 def highest_score_menu(screen, player, main_menu_callback, replay_callback):
-    saved_money, current_highest_score, player_name = load_game_data()
+    from main import create_themed_menu, sound_manager
     
-    total_money = saved_money + player.session_money
-    
-    final_score = (player.level * 10) + player.xp
-    
-    if final_score > current_highest_score:
-        current_highest_score = final_score
-    
-    save_game_data(total_money, current_highest_score, player_name)
-
-    theme = pygame_menu.themes.THEME_DARK.copy()
-    theme.widget_font = FONT_PATH
-    theme.title_font = FONT_PATH
-    
-    menu = pygame_menu.Menu('Game Over', WIDTH, HEIGHT, theme=theme)
+    menu = create_themed_menu('Game Over', WIDTH, HEIGHT)
     menu.add.label(f'Level Reached: {player.level}')
     menu.add.label(f'XP Gained: {player.xp}')
     menu.add.label(f'Session Money: {player.session_money}')
@@ -70,17 +55,9 @@ def save_splitscreen_data(money=0):
         pickle.dump(game_data, file)
 
 def splitscreen_game_over(screen, player1, player2, main_menu_callback, replay_callback):
-    saved_money, _, _ = load_game_data()
-    total_session_money = player1.session_money + player2.session_money
-    total_money = saved_money + total_session_money
+    from main import create_themed_menu, sound_manager
     
-    save_splitscreen_data(total_money)
-
-    theme = pygame_menu.themes.THEME_DARK.copy()
-    theme.widget_font = FONT_PATH
-    theme.title_font = FONT_PATH
-    
-    menu = pygame_menu.Menu('Game Over', WIDTH, HEIGHT, theme=theme)
+    menu = create_themed_menu('Game Over', WIDTH, HEIGHT)
     menu.add.label(f'Player 1 Level: {player1.level}')
     menu.add.label(f'Player 2 Level: {player2.level}')
     menu.add.label(f'Session Money: {total_session_money}')

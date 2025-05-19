@@ -180,7 +180,7 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
     interaction_button1 = InteractionButton()
     interaction_button2 = InteractionButton()
     from ui import DevilShop
-    devil_shop = DevilShop()
+    devil_shop = DevilShop(sound_manager)
     
     while running:
         dt = clock.tick(FPS) / 1000.0

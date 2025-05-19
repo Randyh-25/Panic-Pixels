@@ -222,7 +222,8 @@ class InteractionButton:
         surface.blit(current_image, (button_x + camera_offset[0], button_y + camera_offset[1]))
 
 class DevilShop:
-    def __init__(self):
+    def __init__(self, sound_manager=None):
+        self.sound_manager = sound_manager
         self.is_open = False
         self.selected_item = 0
         self.items = [
@@ -257,9 +258,13 @@ class DevilShop:
         self.is_open = True
         self.selected_item = 0
         self.message = ""
+        if self.sound_manager:
+            self.sound_manager.play_ui_click()
         
     def close(self):
         self.is_open = False
+        if self.sound_manager:
+            self.sound_manager.play_ui_click()
         
     def update(self, events):
         if not self.is_open:
@@ -279,15 +284,23 @@ class DevilShop:
                     self.close()
                 elif event.key == pygame.K_UP:
                     self.selected_item = (self.selected_item - 1) % len(self.items)
+                    if self.sound_manager:
+                        self.sound_manager.play_ui_hover()
                 elif event.key == pygame.K_DOWN:
                     self.selected_item = (self.selected_item + 1) % len(self.items)
+                    if self.sound_manager:
+                        self.sound_manager.play_ui_hover()
                 elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                     self.purchase_item()
-    
+                    if self.sound_manager:
+                        self.sound_manager.play_ui_click()
+                        
     def purchase_item(self):
         # This would be connected to the player's money system in a real implementation
         self.message = f"Purchased {self.items[self.selected_item]['name']}!"
         self.message_timer = 0
+        if self.sound_manager:
+            self.sound_manager.play_ui_click()
         
     def draw(self, surface):
         if not self.is_open:

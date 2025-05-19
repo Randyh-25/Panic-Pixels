@@ -13,6 +13,10 @@ class SoundManager:
         # Load sound effects
         self.splash_sound = pygame.mixer.Sound(os.path.join('assets', 'sound', 'spl', 'spl.wav'))
         
+        # Add UI sound effects
+        self.ui_hover_sound = self.load_sound(os.path.join('assets', 'sound', 'ui', 'select.ogg'))
+        self.ui_click_sound = self.load_sound(os.path.join('assets', 'sound', 'ui', 'selected.ogg'))
+        
         # Load footstep sounds
         self.footstep_sounds = []
         footstep_dir = os.path.join('assets', 'sound', 'steps', 'dirt')
@@ -51,6 +55,12 @@ class SoundManager:
             sound.set_volume(self.volume * 0.3)
         self.splash_sound.set_volume(self.volume)
         
+        # Set volume for UI sounds
+        if self.ui_hover_sound:
+            self.ui_hover_sound.set_volume(self.volume * 0.5)
+        if self.ui_click_sound:
+            self.ui_click_sound.set_volume(self.volume * 0.5)
+            
     def play_menu_music(self):
         pygame.mixer.music.load(self.menu_music)
         pygame.mixer.music.play(-1)  # -1 means loop indefinitely
@@ -81,3 +91,11 @@ class SoundManager:
     def play_player_levelup(self):
         if self.player_levelup_sound:
             self.player_levelup_sound.play()
+            
+    def play_ui_hover(self):
+        if self.ui_hover_sound:
+            self.ui_hover_sound.play()
+            
+    def play_ui_click(self):
+        if self.ui_click_sound:
+            self.ui_click_sound.play()

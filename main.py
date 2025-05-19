@@ -15,6 +15,44 @@ pygame.display.set_caption("Too Many Pixels")
 clock = pygame.time.Clock()
 sound_manager = SoundManager()
 
+# Custom sound engine for pygame_menu
+class SoundEngine(pygame_menu.sound.Sound):
+    def __init__(self, sound_manager):
+        super().__init__()
+        self.sound_manager = sound_manager
+        
+    def play_click_sound(self) -> None:
+        self.sound_manager.play_ui_click()
+        
+    def play_key_add_sound(self) -> None:
+        self.sound_manager.play_ui_hover()
+        
+    def play_open_menu_sound(self) -> None:
+        self.sound_manager.play_ui_click()
+        
+    def play_close_menu_sound(self) -> None:
+        self.sound_manager.play_ui_click()
+
+# Helper function to create themed menu with sounds
+def create_themed_menu(title, width, height):
+    theme = pygame_menu.themes.THEME_DARK.copy()
+    theme.widget_font = FONT_PATH
+    theme.title_font = FONT_PATH
+    
+    menu = pygame_menu.Menu(
+        title, 
+        width,
+        height,
+        theme=theme,
+        onclose=pygame_menu.events.CLOSE
+    )
+    
+    # Add sound engine to menu
+    menu.set_sound(SoundEngine(sound_manager))
+    
+    return menu
+
+# Modified functions to use the new themed menu
 def splash_screen():
     fade_surface = pygame.Surface((WIDTH, HEIGHT))
     fade_surface.fill(BLACK)
@@ -50,6 +88,7 @@ def splash_screen():
         pygame.time.delay(5)
 
 def start_game(mode):
+    sound_manager.play_ui_click()
     sound_manager.stop_menu_music()
     
     if mode == "solo":
@@ -58,16 +97,15 @@ def start_game(mode):
         coop.split_screen_main(screen, clock, sound_manager, main_menu)
 
 def settings_menu():
-    theme = pygame_menu.themes.THEME_DARK.copy()
-    theme.widget_font = FONT_PATH
-    theme.title_font = FONT_PATH
-    
-    menu = pygame_menu.Menu('Settings', min(WIDTH, pygame.display.get_surface().get_width()),
-                          min(HEIGHT, pygame.display.get_surface().get_height()),
-                          theme=theme)
+    menu = create_themed_menu(
+        'Settings', 
+        min(WIDTH, pygame.display.get_surface().get_width()),
+        min(HEIGHT, pygame.display.get_surface().get_height())
+    )
     
     def toggle_fullscreen(value):
         global FULLSCREEN
+        sound_manager.play_ui_click()
         FULLSCREEN = value
         if value:
             pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
@@ -78,6 +116,7 @@ def settings_menu():
 
     def change_resolution(_, res):
         global CURRENT_RESOLUTION
+        sound_manager.play_ui_click()
         if not FULLSCREEN:
             CURRENT_RESOLUTION = res
             pygame.display.set_mode(res)
@@ -100,11 +139,7 @@ def settings_menu():
     menu.mainloop(screen)
 
 def quit_confirmation():
-    theme = pygame_menu.themes.THEME_DARK.copy()
-    theme.widget_font = FONT_PATH
-    theme.title_font = FONT_PATH
-    
-    menu = pygame_menu.Menu('Quit Confirmation', WIDTH, HEIGHT, theme=theme)
+    menu = create_themed_menu('Quit Confirmation', WIDTH, HEIGHT)
     menu.add.label('Are you sure you want to quit?')
     menu.add.button('Yes', pygame.quit)
     menu.add.button('No', main_menu)
@@ -113,14 +148,11 @@ def quit_confirmation():
 def main_menu():
     sound_manager.play_menu_music()
     
-    theme = pygame_menu.themes.THEME_DARK.copy()
-    theme.widget_font = FONT_PATH
-    theme.title_font = FONT_PATH
-    
-    menu = pygame_menu.Menu('Main Menu', 
-                          min(WIDTH, pygame.display.get_surface().get_width()),
-                          min(HEIGHT, pygame.display.get_surface().get_height()),
-                          theme=theme)
+    menu = create_themed_menu(
+        'Main Menu', 
+        min(WIDTH, pygame.display.get_surface().get_width()),
+        min(HEIGHT, pygame.display.get_surface().get_height())
+    )
     
     saved_money, highest_score, player_name = load_game_data()
     
@@ -134,31 +166,23 @@ def main_menu():
     menu.mainloop(screen)
 
 def game_mode_menu():
-    theme = pygame_menu.themes.THEME_DARK.copy()
-    theme.widget_font = FONT_PATH
-    theme.title_font = FONT_PATH
-    
-    menu = pygame_menu.Menu('Game Mode', WIDTH, HEIGHT, theme=theme)
+    menu = create_themed_menu('Game Mode', WIDTH, HEIGHT)
     menu.add.button('Solo', lambda: start_game("solo"))
     menu.add.button('Co-op Multiplayer', lambda: start_game("split_screen"))
     menu.add.button('Back', main_menu)
     menu.mainloop(screen)
 
 def player_name_screen():
-    theme = pygame_menu.themes.THEME_DARK.copy()
-    theme.widget_font = FONT_PATH
-    theme.title_font = FONT_PATH
-    
-    menu = pygame_menu.Menu(
+    menu = create_themed_menu(
         'Welcome to "Too Many Pixels"', 
         WIDTH, 
-        HEIGHT,
-        theme=theme
+        HEIGHT
     )
     
     player_name = [""]
     
     def save_name():
+        sound_manager.play_ui_click()
         if player_name[0].strip():
             save_game_data(0, 0, player_name[0])
             main_menu()
