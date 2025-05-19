@@ -35,6 +35,20 @@ def pause_menu(screen, main_menu_callback):
 def highest_score_menu(screen, player, main_menu_callback, replay_callback):
     from main import create_themed_menu, sound_manager
     
+    # Load current saved data
+    saved_money, current_highest_score, _ = load_game_data()
+    
+    # Calculate total money and final score
+    total_money = saved_money + player.session_money
+    final_score = player.level * 100 + player.xp
+    
+    # Save new highest score if achieved
+    if final_score > current_highest_score:
+        current_highest_score = final_score
+        save_game_data(total_money, current_highest_score)
+    else:
+        save_game_data(total_money)
+    
     menu = create_themed_menu('Game Over', WIDTH, HEIGHT)
     menu.add.label(f'Level Reached: {player.level}')
     menu.add.label(f'XP Gained: {player.xp}')
@@ -56,6 +70,16 @@ def save_splitscreen_data(money=0):
 
 def splitscreen_game_over(screen, player1, player2, main_menu_callback, replay_callback):
     from main import create_themed_menu, sound_manager
+    
+    # Calculate total session money from both players
+    total_session_money = player1.session_money + player2.session_money
+    
+    # Load and update saved money
+    saved_money, _, _ = load_game_data()
+    total_money = saved_money + total_session_money
+    
+    # Save updated money
+    save_splitscreen_data(total_money)
     
     menu = create_themed_menu('Game Over', WIDTH, HEIGHT)
     menu.add.label(f'Player 1 Level: {player1.level}')
