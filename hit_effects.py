@@ -7,7 +7,6 @@ class RockHitEffect(pygame.sprite.Sprite):
         super().__init__()
         self.frames = []
         
-        # Load gambar collapse dari c0.png - c2.png
         for i in range(3):
             try:
                 path = os.path.join("assets", "enemy", "collapse", f"c{i}.png")
