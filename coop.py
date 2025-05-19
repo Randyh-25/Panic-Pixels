@@ -40,7 +40,6 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
         print(f"Error loading map: {e}")
         return
 
-    # Play desert music
     sound_manager.play_gameplay_music(map_type)
     
     camera = Camera(game_map.width, game_map.height)
