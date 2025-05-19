@@ -36,6 +36,12 @@ class Player(pygame.sprite.Sprite):
         self.step_delay = 300
         self.last_step_time = 0
         
+        # New attributes for speed boost and health regeneration
+        self.speed_boost_timer = 0
+        self.speed_multiplier = 1.0
+        self.regen_timer = 0
+        self.regen_amount = 0
+
     def get_movement_direction(self, dx, dy):
         if dx > 0:
             if dy > 0:
@@ -114,7 +120,7 @@ class Player(pygame.sprite.Sprite):
             self.sound_manager.play_random_footstep()
             self.last_step_time = current_time
 
-    def update(self):
+    def update(self, dt, game_map_rect=None):
         if self.is_dying:
             return
             
@@ -125,13 +131,13 @@ class Player(pygame.sprite.Sprite):
         dy = 0
         keys = pygame.key.get_pressed()
         if keys[pygame.K_a]:
-            dx -= self.speed
+            dx -= 1
         if keys[pygame.K_d]:
-            dx += self.speed
+            dx += 1
         if keys[pygame.K_w]:
-            dy -= self.speed
+            dy -= 1
         if keys[pygame.K_s]:
-            dy += self.speed
+            dy += 1
             
         if dx != 0 and dy != 0:
             dx *= 0.7071
@@ -147,19 +153,38 @@ class Player(pygame.sprite.Sprite):
         if self.is_moving:
             self.facing = self.get_movement_direction(dx, dy)
             
-        self.rect.x += dx
+        # Handle speed boost
+        if self.speed_boost_timer > 0:
+            self.speed_boost_timer -= dt
+            actual_speed = self.speed * self.speed_multiplier
+        else:
+            self.speed_multiplier = 1.0
+            actual_speed = self.speed
+        
+        # Handle health regeneration
+        if self.regen_timer > 0:
+            self.regen_timer -= dt
+            self.regen_cooldown -= dt
+            if self.regen_cooldown <= 0:
+                self.health = min(self.health + self.regen_amount, self.max_health)
+                self.regen_cooldown = 1  # Regenerate once per second
+    
+        # Apply delta time to movement to ensure consistent speed across different frame rates
+        frame_speed = actual_speed * dt * 60  # Normalize to 60fps
+    
+        self.rect.x += dx * frame_speed
         if hasattr(self, 'game_map') and (
             any(self.rect.colliderect(fence) for fence in self.game_map.fence_rects) or
             any(self.rect.colliderect(tree) for tree in self.game_map.tree_collision_rects)):
             self.rect.x = old_x
             
-        self.rect.y += dy
+        self.rect.y += dy * frame_speed
         if hasattr(self, 'game_map') and (
             any(self.rect.colliderect(fence) for fence in self.game_map.fence_rects) or
             any(self.rect.colliderect(tree) for tree in self.game_map.tree_collision_rects)):
             self.rect.y = old_y
             
-        self.animate(1/60)
+        self.animate(dt)
 
 class Camera:
     def __init__(self, map_width, map_height):

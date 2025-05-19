@@ -112,7 +112,7 @@ class Player2(pygame.sprite.Sprite):
             self.sound_manager.play_random_footstep()
             self.last_step_time = current_time
 
-    def update(self):
+    def update(self, dt):
         if self.is_dying:
             return
             
@@ -125,13 +125,13 @@ class Player2(pygame.sprite.Sprite):
         
         # Using arrow keys for Player 2
         if keys[pygame.K_LEFT]:
-            dx -= self.speed
+            dx -= 1
         if keys[pygame.K_RIGHT]:
-            dx += self.speed
+            dx += 1
         if keys[pygame.K_UP]:
-            dy -= self.speed
+            dy -= 1
         if keys[pygame.K_DOWN]:
-            dy += self.speed
+            dy += 1
             
         if dx != 0 and dy != 0:
             dx *= 0.7071
@@ -146,17 +146,20 @@ class Player2(pygame.sprite.Sprite):
         
         if self.is_moving:
             self.facing = self.get_movement_direction(dx, dy)
+    
+        # Apply delta time to movement to ensure consistent speed across different frame rates
+        frame_speed = self.speed * dt * 60  # Normalize to 60fps
             
-        self.rect.x += dx
+        self.rect.x += dx * frame_speed
         if hasattr(self, 'game_map') and (
             any(self.rect.colliderect(fence) for fence in self.game_map.fence_rects) or
             any(self.rect.colliderect(tree) for tree in self.game_map.tree_collision_rects)):
             self.rect.x = old_x
             
-        self.rect.y += dy
+        self.rect.y += dy * frame_speed
         if hasattr(self, 'game_map') and (
             any(self.rect.colliderect(fence) for fence in self.game_map.fence_rects) or
             any(self.rect.colliderect(tree) for tree in self.game_map.tree_collision_rects)):
             self.rect.y = old_y
             
-        self.animate(1/60)
+        self.animate(dt)

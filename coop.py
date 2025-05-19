@@ -221,6 +221,24 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
         
         if devil_shop.is_open:
             devil_shop.update(current_events)
+            # When shop is open, determine which player is interacting
+            active_player = None
+            active_partner = None
+
+            if interaction_button1.is_visible and interaction_button1.target_entity == player1:
+                active_player = player1
+                active_partner = partner1
+            elif interaction_button2.is_visible and interaction_button2.target_entity == player2:
+                active_player = player2
+                active_partner = partner2
+
+            # Process purchase if a player is active
+            if devil_shop.is_open and active_player:
+                # If player presses enter or space, try to purchase the selected item
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_RETURN] or keys[pygame.K_SPACE]:
+                    devil_shop.purchase_item(active_player, active_partner)
+
             # Skip regular game updates while shop is open
             devil_shop.draw(screen)
             pygame.display.flip()
@@ -386,8 +404,8 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                     
             projectile_timer = 0
 
-        player1.update()
-        player2.update()
+        player1.update(dt)
+        player2.update(dt)
         partner1.update(dt)
         partner2.update(dt)
         

@@ -226,12 +226,27 @@ class DevilShop:
         self.sound_manager = sound_manager
         self.is_open = False
         self.selected_item = 0
-        self.items = [
+        self.current_tab = 0  # 0: Potions, 1: Skills, 2: Partner
+        self.tab_names = ["Potions", "Skills", "Partner"]
+        
+        # Define items for each tab
+        self.potion_items = [
             {"name": "Health Potion", "price": 50, "desc": "Restore 20 health"},
-            {"name": "Max Health Up", "price": 200, "desc": "+10 max health"},
-            {"name": "Speed Boost", "price": 150, "desc": "+10% movement speed"},
-            {"name": "Damage Boost", "price": 300, "desc": "+15% damage"}
+            {"name": "XP Potion", "price": 100, "desc": "Gain 50 XP instantly"},
+            {"name": "Speed Potion", "price": 150, "desc": "Temporary speed boost"},
+            {"name": "Regen Potion", "price": 200, "desc": "Slowly restore health over time"}
         ]
+        
+        self.skill_items = [
+            {"name": "Coming soon...", "price": 0, "desc": "Partner skills will be available soon"}
+        ]
+        
+        self.partner_items = [
+            {"name": "Skull Partner", "price": 1000, "desc": "Replace your eagle with a skull companion"}
+        ]
+        
+        # The active tab's items
+        self.items = self.potion_items
         
         # Shop UI elements
         self.border_color = (255, 215, 0)  # Gold color for border
@@ -240,12 +255,15 @@ class DevilShop:
         self.text_color = (200, 200, 200)
         self.highlight_color = (255, 215, 0)
         self.error_color = (255, 80, 80)
+        self.active_tab_color = (80, 80, 80)
+        self.inactive_tab_color = (40, 40, 40)
         
         # Position and size
         self.width = 500
         self.height = 400
         self.padding = 20
         self.item_height = 50
+        self.tab_height = 40
         self.message = ""
         self.message_timer = 0
         
@@ -253,11 +271,14 @@ class DevilShop:
         self.title_font = pygame.font.Font(FONT_PATH, 36)
         self.item_font = pygame.font.Font(FONT_PATH, 24)
         self.desc_font = pygame.font.Font(FONT_PATH, 18)
-        
+        self.tab_font = pygame.font.Font(FONT_PATH, 22)
+
     def open(self):
         self.is_open = True
         self.selected_item = 0
         self.message = ""
+        # Set items based on current tab
+        self.update_items_for_tab()
         if self.sound_manager:
             self.sound_manager.play_ui_click()
         
@@ -265,7 +286,16 @@ class DevilShop:
         self.is_open = False
         if self.sound_manager:
             self.sound_manager.play_ui_click()
-        
+    
+    def update_items_for_tab(self):
+        if self.current_tab == 0:
+            self.items = self.potion_items
+        elif self.current_tab == 1:
+            self.items = self.skill_items
+        else:
+            self.items = self.partner_items
+        self.selected_item = min(self.selected_item, len(self.items) - 1)
+
     def update(self, events):
         if not self.is_open:
             return
@@ -290,18 +320,76 @@ class DevilShop:
                     self.selected_item = (self.selected_item + 1) % len(self.items)
                     if self.sound_manager:
                         self.sound_manager.play_ui_hover()
+                elif event.key == pygame.K_LEFT:
+                    self.current_tab = (self.current_tab - 1) % len(self.tab_names)
+                    self.update_items_for_tab()
+                    if self.sound_manager:
+                        self.sound_manager.play_ui_hover()
+                elif event.key == pygame.K_RIGHT:
+                    self.current_tab = (self.current_tab + 1) % len(self.tab_names)
+                    self.update_items_for_tab()
+                    if self.sound_manager:
+                        self.sound_manager.play_ui_hover()
                 elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                     self.purchase_item()
                     if self.sound_manager:
                         self.sound_manager.play_ui_click()
-                        
-    def purchase_item(self):
-        # This would be connected to the player's money system in a real implementation
-        self.message = f"Purchased {self.items[self.selected_item]['name']}!"
-        self.message_timer = 0
-        if self.sound_manager:
-            self.sound_manager.play_ui_click()
+
+    def purchase_item(self, player=None, partner=None):
+        if len(self.items) == 0 or player is None:
+            return False
+            
+        item = self.items[self.selected_item]
         
+        # Check if player has enough money
+        if player.session_money < item["price"]:
+            self.message = f"Not enough money! Need ${item['price']}"
+            self.message_timer = 0
+            if self.sound_manager:
+                self.sound_manager.play_ui_hover()  # Use hover sound for error
+            return False
+            
+        # Process purchase based on item type
+        purchased = False
+        
+        if self.current_tab == 0:  # Potions tab
+            if item["name"] == "Health Potion":
+                player.health = min(player.health + 20, player.max_health)
+                purchased = True
+            elif item["name"] == "XP Potion":
+                player.gain_xp(50)
+                purchased = True
+            elif item["name"] == "Speed Potion":
+                player.speed_boost_timer = 10  # 10 seconds boost
+                player.speed_multiplier = 1.5
+                purchased = True
+            elif item["name"] == "Regen Potion":
+                player.regen_timer = 15  # 15 seconds of regeneration
+                player.regen_amount = 1  # 1 health per second
+                purchased = True
+                
+        elif self.current_tab == 1:  # Skills tab
+            # Skills will be implemented later
+            self.message = "Skills will be available soon!"
+            return False
+            
+        elif self.current_tab == 2:  # Partner tab
+            if item["name"] == "Skull Partner" and partner:
+                # Change partner type from eagle to skull
+                partner.change_type("skull")
+                purchased = True
+        
+        # If purchase was successful
+        if purchased:
+            player.session_money -= item["price"]
+            self.message = f"Purchased {item['name']}!"
+            self.message_timer = 0
+            if self.sound_manager:
+                self.sound_manager.play_ui_click()
+            return True
+            
+        return False
+
     def draw(self, surface):
         if not self.is_open:
             return
@@ -326,8 +414,29 @@ class DevilShop:
         title_rect = title.get_rect(midtop=(x + self.width//2, y + self.padding))
         surface.blit(title, title_rect)
         
+        # Draw tabs
+        tab_width = self.width // len(self.tab_names)
+        for i, tab_name in enumerate(self.tab_names):
+            tab_color = self.active_tab_color if i == self.current_tab else self.inactive_tab_color
+            tab_text_color = self.highlight_color if i == self.current_tab else self.text_color
+            
+            tab_rect = pygame.Rect(
+                x + i * tab_width,
+                y + title_rect.height + self.padding * 2,
+                tab_width,
+                self.tab_height
+            )
+            
+            pygame.draw.rect(surface, tab_color, tab_rect, border_radius=5)
+            if i == self.current_tab:
+                pygame.draw.rect(surface, self.border_color, tab_rect, 2, border_radius=5)
+            
+            tab_surf = self.tab_font.render(tab_name, True, tab_text_color)
+            tab_text_rect = tab_surf.get_rect(center=tab_rect.center)
+            surface.blit(tab_surf, tab_text_rect)
+        
         # Draw items
-        item_start_y = y + title_rect.height + self.padding * 2
+        item_start_y = y + title_rect.height + self.padding * 2 + self.tab_height + self.padding
         for i, item in enumerate(self.items):
             # Determine if this item is selected
             is_selected = i == self.selected_item
@@ -349,28 +458,28 @@ class DevilShop:
             item_surface = self.item_font.render(item_text, True, item_color)
             surface.blit(item_surface, (
                 x + self.padding * 2,
-                item_start_y + i * (self.item_height + 5) + 10
+                item_start_y + i * (self.item_height + 5) + 5
             ))
             
-            # Description below if selected
+            # Draw description text for selected item
             if is_selected:
                 desc_surface = self.desc_font.render(item['desc'], True, self.text_color)
                 surface.blit(desc_surface, (
                     x + self.padding * 2,
-                    item_start_y + i * (self.item_height + 5) + 35
+                    item_start_y + i * (self.item_height + 5) + 30
                 ))
         
-        # Draw bottom instructions
-        instruction_y = y + self.height - self.padding - 20
-        instructions = self.desc_font.render("↑/↓: Select  |  Enter: Buy  |  ESC: Close", True, self.text_color)
-        instructions_rect = instructions.get_rect(center=(x + self.width//2, instruction_y))
-        surface.blit(instructions, instructions_rect)
-        
-        # Draw message if any
+        # Draw message at the bottom if there is one
         if self.message:
-            message_surf = self.item_font.render(self.message, True, self.highlight_color)
-            message_rect = message_surf.get_rect(midbottom=(x + self.width//2, instruction_y - 20))
-            surface.blit(message_surf, message_rect)
+            message_surface = self.item_font.render(self.message, True, self.highlight_color)
+            message_rect = message_surface.get_rect(midbottom=(x + self.width//2, y + self.height - 20))
+            surface.blit(message_surface, message_rect)
+        
+        # Draw navigation hints
+        hint_text = "← → Switch Tabs | ↑↓ Select Item | Space/Enter Purchase | ESC Close"
+        hint_surface = self.desc_font.render(hint_text, True, self.text_color)
+        hint_rect = hint_surface.get_rect(midbottom=(x + self.width//2, y + self.height - 5))
+        surface.blit(hint_surface, hint_rect)
 
 class MiniMap:
     def __init__(self, map_width, map_height, screen_width, screen_height):

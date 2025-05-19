@@ -165,6 +165,12 @@ def main(screen, clock, sound_manager, main_menu_callback):
 
         if devil_shop.is_open:
             devil_shop.update(current_events)
+            # When shop is open, pass player and partner to purchase function
+            if devil_shop.is_open and interaction_button.is_visible and interaction_button.target_entity == player:
+                # If player presses enter or space, try to purchase the selected item
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_RETURN] or keys[pygame.K_SPACE]:
+                    devil_shop.purchase_item(player, partner)
             # Skip regular game updates while shop is open
             devil_shop.draw(screen)
             pygame.display.flip()
@@ -287,7 +293,7 @@ def main(screen, clock, sound_manager, main_menu_callback):
             else:
                 partner.stop_shooting()
 
-        player.update()
+        player.update(dt)
         partner.update(dt)
 
         for enemy in enemies:

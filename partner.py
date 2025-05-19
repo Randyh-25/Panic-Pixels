@@ -48,6 +48,9 @@ class Partner(pygame.sprite.Sprite):
         self.is_shooting = False
         self.shooting_direction = 'right'
         
+        self.partner_type = "eagle"  # Default type
+        self.width, self.height = 48, 48  # Default dimensions for scaling
+        
     def update_position(self):
         self.rect.centerx = self.player.rect.centerx + math.cos(math.radians(self.angle)) * self.orbit_radius
         self.rect.centery = self.player.rect.centery + math.sin(math.radians(self.angle)) * self.orbit_radius
@@ -73,11 +76,58 @@ class Partner(pygame.sprite.Sprite):
         self.is_shooting = False
         
     def update(self, dt):
+        # Add a check at the start of update to ensure correct frames are used
+        if self.partner_type == "skull":
+            self.frames = self.skull_frames
+            self.left_frames = self.skull_left_frames
+        else:
+            self.frames = self.eagle_frames
+            self.left_frames = self.eagle_left_frames
+        
         self.angle = (self.angle + self.orbit_speed) % 360
         
         self.update_position()
         
-        self.animate(dt)
-        
+        self.animation_timer += dt
+        if self.animation_timer >= self.animation_speed:
+            self.animation_timer = 0
+            self.frame_index = (self.frame_index + 1) % len(self.frames)
+            
+            # Use correct frames based on direction and shooting status
+            if self.is_shooting:
+                if self.shooting_direction == 'left':
+                    self.image = self.left_frames[self.frame_index]
+                else:
+                    self.image = self.frames[self.frame_index]
+            else:
+                if hasattr(self.player, 'facing') and self.player.facing == 'left':
+                    self.image = self.left_frames[self.frame_index]
+                else:
+                    self.image = self.frames[self.frame_index]
+                
     def get_shooting_position(self):
         return self.rect.centerx, self.rect.centery
+    
+    def change_type(self, new_type):
+        """Change the partner type (e.g., from eagle to skull)"""
+        if new_type == "skull" and self.partner_type != "skull":
+            self.partner_type = "skull"
+            
+            # Update sprite images
+            try:
+                # Use the existing skull frames that are already loaded in __init__
+                self.frames = self.skull_frames
+                self.left_frames = self.skull_left_frames
+                
+                # Reset to idle state
+                self.image = self.frames[0]
+                self.frame_index = 0  # Reset frame index
+                
+                # Update width and height to match skull size
+                self.width, self.height = 32, 32  # Skull dimensions
+                
+                return True
+            except Exception as e:
+                print(f"Error changing partner type: {e}")
+                return False
+        return False
