@@ -39,6 +39,39 @@ def create_themed_menu(title, width, height):
     theme.widget_font = FONT_PATH
     theme.title_font = FONT_PATH
     
+    # Add stronger title border styling
+    theme.title_background_color = (0, 0, 0, 200)  # More opaque black
+    theme.title_font_shadow = True
+    theme.title_font_shadow_color = (0, 0, 0)
+    theme.title_font_shadow_offset = 3  # Increased offset for more visibility
+    theme.title_bar_style = pygame_menu.widgets.MENUBAR_STYLE_SIMPLE
+    theme.title_font_size = 36
+    theme.title_font_antialias = True
+    theme.title_font_color = (255, 255, 255)  # White text
+    
+    # Add thicker border
+    theme.title_offset = (5, 5)
+    theme.title_padding = (10, 10)
+    
+    # Set outline color to solid black
+    theme.title_close_button_background_color = (0, 0, 0)
+    theme.title_floating = False  # Ensures the title has a solid background
+    
+    # Add border to menu
+    theme.border_width = 4  # Increase border width for more visibility
+    theme.border_color = (0, 0, 0)
+    
+    # Stronger title border
+    theme.title_bar_style = pygame_menu.widgets.MENUBAR_STYLE_UNDERLINE_TITLE
+    theme.title_underline_width = 3
+    theme.title_underline_color = (0, 0, 0)
+    
+    # Set background image for menu
+    theme.background_color = pygame_menu.baseimage.BaseImage(
+        image_path='assets/UI/bg.png',
+        drawing_mode=pygame_menu.baseimage.IMAGE_MODE_FILL
+    )
+    
     menu = pygame_menu.Menu(
         title, 
         width,
@@ -49,6 +82,8 @@ def create_themed_menu(title, width, height):
     
     # Add sound engine to menu
     menu.set_sound(SoundEngine(sound_manager))
+    
+    # Remove the custom decorator code that's causing the error
     
     return menu
 
