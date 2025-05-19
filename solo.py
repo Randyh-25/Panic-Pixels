@@ -286,7 +286,10 @@ def main(screen, clock, sound_manager, main_menu_callback):
                         
                         partner.shoot_at(target_pos)
                         
-                        projectile.reset(start_pos, target_pos)
+                        # Get projectile type based on partner type
+                        projectile_type = partner.get_projectile_type()
+                        
+                        projectile.reset(start_pos, target_pos, projectile_type)
                         projectile.add(all_sprites, projectiles)
                         projectile_timer = 0
                         break

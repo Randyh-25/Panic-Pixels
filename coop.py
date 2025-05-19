@@ -365,7 +365,10 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                             
                             partner1.shoot_at(target_pos)
                             
-                            projectile.reset(start_pos, target_pos)
+                            # Get projectile type based on partner type
+                            projectile_type = partner1.get_projectile_type()
+                            
+                            projectile.reset(start_pos, target_pos, projectile_type)
                             projectile.add(all_sprites, projectiles1)
                             break
                 else:
@@ -396,7 +399,10 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                             
                             partner2.shoot_at(target_pos)
                             
-                            projectile.reset(start_pos, target_pos)
+                            # Get projectile type based on partner type
+                            projectile_type = partner2.get_projectile_type()
+                            
+                            projectile.reset(start_pos, target_pos, projectile_type)
                             projectile.add(all_sprites, projectiles2)
                             break
                 else:

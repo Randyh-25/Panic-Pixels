@@ -71,7 +71,8 @@ class Partner(pygame.sprite.Sprite):
     def shoot_at(self, target_pos):
         self.is_shooting = True
         self.shooting_direction = 'left' if target_pos[0] < self.rect.centerx else 'right'
-        
+        self.shooting_target = target_pos  # Store target position for projectile creation
+
     def stop_shooting(self):
         self.is_shooting = False
         
@@ -107,6 +108,13 @@ class Partner(pygame.sprite.Sprite):
                 
     def get_shooting_position(self):
         return self.rect.centerx, self.rect.centery
+
+    def get_projectile_type(self):
+        """Return the projectile type based on partner type"""
+        if self.partner_type == "skull":
+            return "fireball"
+        else:
+            return "rock"
     
     def change_type(self, new_type):
         """Change the partner type (e.g., from eagle to skull)"""
