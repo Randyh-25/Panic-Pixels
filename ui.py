@@ -482,18 +482,26 @@ class DevilShop:
         surface.blit(hint_surface, hint_rect)
 
 class MiniMap:
-    def __init__(self, map_width, map_height, screen_width, screen_height):
+    def __init__(self, map_width, map_height, screen_width, screen_height, player_id=1, position="right"):
         self.map_width = map_width
         self.map_height = map_height
         self.screen_width = screen_width
         self.screen_height = screen_height
+        self.player_id = player_id  # 1 or 2 to identify which player this minimap belongs to
+        self.position = position    # "left" or "right" to determine position
         
         # Mini map dimensions and position
-        self.width = 180
-        self.height = 180
+        self.width = 150
+        self.height = 150
         self.padding = 10
-        self.x = screen_width - self.width - self.padding
-        self.y = self.padding
+        
+        # Set position based on the parameter
+        if position == "left":
+            self.x = self.padding
+            self.y = screen_height - self.height - 50  # Above level text
+        else:
+            self.x = screen_width - self.width - self.padding
+            self.y = screen_height - self.height - 50  # Above XP text
         
         # Mini map scale factors
         self.scale_x = self.width / map_width
@@ -503,13 +511,15 @@ class MiniMap:
         self.surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         
         # Entity colors
-        self.player_color = (0, 255, 0)          # Green for player
-        self.enemy_color = (255, 0, 0)           # Red for enemies
-        self.devil_color = (150, 0, 0)           # Dark red for devil outline
-        self.devil_color_inner = (0, 0, 0)       # Black for devil inner circle
+        self.player1_color = (0, 255, 0)        # Green for player 1
+        self.player2_color = (255, 255, 0)      # Yellow for player 2
+        self.enemy_color = (255, 0, 0)          # Red for enemies
+        self.devil_color = (150, 0, 0)          # Dark red for devil outline
+        self.devil_color_inner = (0, 0, 0)      # Black for devil inner circle
         
         # Entity sizes
         self.player_size = 5
+        self.other_player_size = 4
         self.enemy_size = 3
         self.devil_size = 7
     
@@ -520,7 +530,7 @@ class MiniMap:
         self.scale_x = self.width / map_width
         self.scale_y = self.height / map_height
     
-    def draw(self, screen, player, enemies=None, devil=None):
+    def draw(self, screen, player, other_player=None, enemies=None, devil=None):
         # Clear the surface with translucent dark background
         self.surface.fill((20, 20, 20, 180))
         
@@ -544,10 +554,45 @@ class MiniMap:
             pygame.draw.circle(self.surface, self.devil_color, (mini_x, mini_y), self.devil_size)
             pygame.draw.circle(self.surface, self.devil_color_inner, (mini_x, mini_y), self.devil_size - 2)
         
-        # Draw player (draw last so it's on top)
+        # Draw other player if exists and alive
+        if other_player and other_player.health > 0:
+            mini_x = int(other_player.rect.centerx * self.scale_x)
+            mini_y = int(other_player.rect.centery * self.scale_y)
+            # Use appropriate color for the other player
+            other_color = self.player1_color if self.player_id == 2 else self.player2_color
+            pygame.draw.circle(self.surface, other_color, (mini_x, mini_y), self.other_player_size)
+        
+        # Draw main player (draw last so it's on top)
         mini_x = int(player.rect.centerx * self.scale_x)
         mini_y = int(player.rect.centery * self.scale_y)
-        pygame.draw.circle(self.surface, self.player_color, (mini_x, mini_y), self.player_size)
+        # Use appropriate color for the player this minimap belongs to
+        player_color = self.player1_color if self.player_id == 1 else self.player2_color
+        pygame.draw.circle(self.surface, player_color, (mini_x, mini_y), self.player_size)
         
         # Draw the mini map on the screen
         screen.blit(self.surface, (self.x, self.y))
+
+    def set_position(self, x, y):
+        """Set custom position for the minimap"""
+        self.x = x
+        self.y = y
+
+    def adjust_for_split_screen(self, is_split, viewport_width):
+        """Adjust minimap position for split screen mode"""
+        if is_split:
+            if self.player_id == 1:
+                # Player 1 minimap always in bottom left
+                self.x = self.padding
+                self.y = self.screen_height - self.height - 50
+            else:
+                # Player 2 minimap in bottom right of right viewport
+                self.x = viewport_width + self.padding
+                self.y = self.screen_height - self.height - 50
+        else:
+            # In normal mode, position based on left/right parameter
+            if self.position == "left":
+                self.x = self.padding
+                self.y = self.screen_height - self.height - 50
+            else:
+                self.x = self.screen_width - self.width - self.padding
+                self.y = self.screen_height - self.height - 50
