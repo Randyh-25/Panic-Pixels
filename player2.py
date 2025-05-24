@@ -3,38 +3,38 @@ from settings import WIDTH, HEIGHT, BLUE
 from utils import load_game_data
 from player_animations import PlayerAnimations
 
-class Player2(pygame.sprite.Sprite):
+class Player2(pygame.sprite.Sprite):  # Kelas Player2 mewarisi Sprite dari pygame
     def __init__(self):
         super().__init__()
-        self.animations = PlayerAnimations()
-        self.player_id = 2
-        
-        self.image = self.animations.animations['idle_down'][0]
+        self.animations = PlayerAnimations()  # Objek untuk animasi player
+        self.player_id = 2  # ID khusus untuk Player2
+
+        self.image = self.animations.animations['idle_down'][0]  # Gambar awal (diam menghadap bawah)
         self.rect = self.image.get_rect()
-        self.rect.center = (WIDTH // 2 + 100, HEIGHT // 2) # Offset from player 1
-        
-        self.speed = 5
-        self.max_health = 100
-        self.health = self.max_health
-        self.session_money = 0
-        self.xp = 0
-        self.max_xp = 100
-        self.level = 1
-        
-        self.facing = 'idle_down'
-        self.is_moving = False
-        self.last_direction = 'down'
-        
-        self.is_dying = False
-        self.death_frame = 0
-        self.death_animation_speed = 0.1
-        self.death_timer = 0
-        self.was_moving = False
-        self.step_timer = 0
-        self.step_delay = 300
-        self.last_step_time = 0
-        
-    def get_movement_direction(self, dx, dy):
+        self.rect.center = (WIDTH // 2 + 100, HEIGHT // 2)  # Posisi awal, sedikit ke kanan dari Player1
+
+        self.speed = 5  # Kecepatan gerak
+        self.max_health = 100  # HP maksimum
+        self.health = self.max_health  # HP awal
+        self.session_money = 0  # Uang sementara per sesi
+        self.xp = 0  # XP awal
+        self.max_xp = 100  # XP maksimum sebelum naik level
+        self.level = 1  # Level awal
+
+        self.facing = 'idle_down'  # Arah menghadap saat idle
+        self.is_moving = False  # Status pergerakan
+        self.last_direction = 'down'  # Arah terakhir bergerak
+
+        self.is_dying = False  # Status kematian
+        self.death_frame = 0  # Frame animasi kematian
+        self.death_animation_speed = 0.1  # Kecepatan animasi mati
+        self.death_timer = 0  # Timer untuk animasi mati
+        self.was_moving = False  # Apakah sebelumnya bergerak
+        self.step_timer = 0  # Timer langkah
+        self.step_delay = 300  # Jeda antara langkah kaki (ms)
+        self.last_step_time = 0  # Waktu terakhir suara langkah dimainkan
+
+    def get_movement_direction(self, dx, dy):  # Menentukan arah gerak berdasarkan input
         if dx > 0:
             if dy > 0:
                 self.last_direction = 'down_right'
@@ -62,68 +62,68 @@ class Player2(pygame.sprite.Sprite):
             self.last_direction = 'up'
             return 'walk_up'
         
-        return self.get_idle_direction()
-    
+        return self.get_idle_direction()  # Jika tidak bergerak, arah idle
+
     def get_idle_direction(self):
-        return f'idle_{self.last_direction}'
-        
-    def start_death_animation(self):
+        return f'idle_{self.last_direction}'  # Mengembalikan animasi idle sesuai arah terakhir
+
+    def start_death_animation(self):  # Memulai animasi mati
         self.is_dying = True
         self.death_frame = 0
         self.death_timer = 0
         
-        # Play death sound
+        # Jika ada sound manager, mainkan suara mati
         if hasattr(self, 'sound_manager') and self.sound_manager:
             self.sound_manager.play_player_death()
 
-    def update_death_animation(self, dt):
+    def update_death_animation(self, dt):  # Proses animasi mati per frame
         if not self.is_dying:
             return False
-            
+
         self.death_timer += dt
         if self.death_timer >= self.death_animation_speed:
             self.death_timer = 0
             self.death_frame += 1
             if self.death_frame < len(self.animations.animations['death']):
                 self.image = self.animations.animations['death'][self.death_frame]
-                return False
-            return True
+                return False  # Belum selesai
+            return True  # Animasi selesai
         return False
-        
-    def animate(self, dt):
+
+    def animate(self, dt):  # Mengatur animasi gerakan atau idle
         if self.is_dying:
             return self.update_death_animation(dt)
-            
+
         self.animations.animation_timer += dt
-        
+
         if not self.is_moving:
             current_anim = self.get_idle_direction()
         else:
             current_anim = self.facing
-            
+
         if self.animations.animation_timer >= self.animations.animation_speed:
             self.animations.animation_timer = 0
             self.animations.frame_index = (self.animations.frame_index + 1) % len(self.animations.animations[current_anim])
             self.image = self.animations.animations[current_anim][self.animations.frame_index]
 
-    def play_footstep(self):
+    def play_footstep(self):  # Mainkan suara langkah jika waktunya sesuai
         current_time = pygame.time.get_ticks()
         if current_time - self.last_step_time >= self.step_delay:
             self.sound_manager.play_random_footstep()
             self.last_step_time = current_time
 
-    def update(self, dt):
+    def update(self, dt):  # Fungsi utama update tiap frame
         if self.is_dying:
-            return
-            
+            return  # Jika mati, tidak bisa update gerakan
+
         old_x = self.rect.x
         old_y = self.rect.y
-        
+
         dx = 0
         dy = 0
         keys = pygame.key.get_pressed()
-        
-        # Using arrow keys for Player 2
+
+        # Kontrol arah untuk Player 2 (tombol panah)
         if keys[pygame.K_LEFT]:
             dx -= 1
         if keys[pygame.K_RIGHT]:
@@ -132,34 +132,37 @@ class Player2(pygame.sprite.Sprite):
             dy -= 1
         if keys[pygame.K_DOWN]:
             dy += 1
-            
+
+        # Normalisasi diagonal agar tidak lebih cepat
         if dx != 0 and dy != 0:
             dx *= 0.7071
             dy *= 0.7071
-            
-        self.is_moving = dx != 0 or dy != 0
-        
+
+        self.is_moving = dx != 0 or dy != 0  # Update status gerak
+
         if self.is_moving:
             self.play_footstep()
-        
+
         self.was_moving = self.is_moving
-        
+
         if self.is_moving:
             self.facing = self.get_movement_direction(dx, dy)
-    
-        # Apply delta time to movement to ensure consistent speed across different frame rates
-        frame_speed = self.speed * dt * 60  # Normalize to 60fps
-            
+
+        # Hitung kecepatan berdasarkan delta time (frame-independent movement)
+        frame_speed = self.speed * dt * 60
+
+        # Pergerakan horizontal + cek tabrakan dengan pagar atau pohon
         self.rect.x += dx * frame_speed
         if hasattr(self, 'game_map') and (
             any(self.rect.colliderect(fence) for fence in self.game_map.fence_rects) or
             any(self.rect.colliderect(tree) for tree in self.game_map.tree_collision_rects)):
-            self.rect.x = old_x
-            
+            self.rect.x = old_x  # Kembalikan jika tabrakan
+
+        # Pergerakan vertikal + cek tabrakan
         self.rect.y += dy * frame_speed
         if hasattr(self, 'game_map') and (
             any(self.rect.colliderect(fence) for fence in self.game_map.fence_rects) or
             any(self.rect.colliderect(tree) for tree in self.game_map.tree_collision_rects)):
-            self.rect.y = old_y
-            
-        self.animate(dt)
+            self.rect.y = old_y  # Kembalikan jika tabrakan
+
+        self.animate(dt)  # Jalankan animasi sesuai arah/status
