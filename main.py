@@ -633,7 +633,7 @@ def game_mode_menu():
 
 def player_name_screen():
     menu = create_themed_menu(
-        'Welcome to Too Much Pixels', 
+        '', 
         WIDTH, 
         HEIGHT
     )
@@ -677,10 +677,17 @@ def player_name_screen():
         player_name[0] = value
     
     # Add decorative elements
-    menu.add.vertical_margin(50)
-    menu.add.label("Begin Your Pixel Adventure", font_size=50, font_color=(255, 215, 0))
+    menu.add.vertical_margin(150)
+    menu.add.label("Begin Your Pixel Adventure", font_size=50, 
+                   font_color=(255, 215, 0),
+                   font_shadow=True,
+                   font_shadow_color=(0, 0, 0),
+                   font_shadow_offset=3)
     menu.add.vertical_margin(20)
-    menu.add.label("Enter your hero's name:", font_size=30)
+    menu.add.label("Enter your hero's name:", font_size=30, font_color=(255, 215, 0),
+                   font_shadow=True,
+                   font_shadow_color=(0, 0, 0),
+                   font_shadow_offset=3)
     menu.add.vertical_margin(20)
     
     # Perbaiki masalah dengan cursor_selection_color
