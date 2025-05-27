@@ -32,6 +32,33 @@ class SoundManager:
         self.player_death_sound = self.load_sound(os.path.join("assets", "sound", "cowboy", "death.ogg"))
         self.player_levelup_sound = self.load_sound(os.path.join("assets", "sound", "cowboy", "lvlup.ogg"))
         
+        # Load partner throw sound effects
+        self.partner_throw_sounds = []
+        for i in range(2):
+            throw_sound = self.load_sound(os.path.join("assets", "sound", "partner", f"throw{i}.ogg"))
+            if throw_sound:
+                throw_sound.set_volume(0.1)  # Set reasonable volume
+                self.partner_throw_sounds.append(throw_sound)
+                
+        # Load Boss Gollux sound effects
+        self.gollux_walk_sounds = []
+        for i in range(1, 3):
+            walk_sound = self.load_sound(os.path.join("assets", "sound", "boss-gollux", f"walk ({i}).ogg"))
+            if walk_sound:
+                walk_sound.set_volume(0.3)  # Volume langkah Gollux
+                self.gollux_walk_sounds.append(walk_sound)
+        
+        self.gollux_attack_sounds = []
+        for i in range(1, 7):
+            attack_sound = self.load_sound(os.path.join("assets", "sound", "boss-gollux", f"attack ({i}).ogg"))
+            if attack_sound:
+                attack_sound.set_volume(0.6)  # Volume serangan Gollux
+                self.gollux_attack_sounds.append(attack_sound)
+        
+        self.gollux_death_sound = self.load_sound(os.path.join("assets", "sound", "boss-gollux", "death.ogg"))
+        if self.gollux_death_sound:
+            self.gollux_death_sound.set_volume(0.7)  # Volume kematian Gollux
+
         # Set volume default untuk efek pemain
         if self.player_death_sound:
             self.player_death_sound.set_volume(0.5)
@@ -112,4 +139,33 @@ class SoundManager:
     def play_ui_click(self):
         if self.ui_click_sound:
             self.ui_click_sound.play()
+    
+    def play_victory_sound(self):
+        """Play victory fanfare when player wins"""
+        try:
+            victory_sound = self.load_sound("assets/sound/bg/victory.ogg")
+            victory_sound.set_volume(self.volume / 100.0)
+            victory_sound.play()
+        except:
+            print("Error playing victory sound")
+    
+    def play_random_partner_throw(self, partner_type="eagle"):
+        """Play a random throw sound effect for the partner"""
+        if partner_type == "eagle" and self.partner_throw_sounds:
+            random.choice(self.partner_throw_sounds).play()
+    
+    def play_gollux_walk(self):
+        """Play random walk sound for Gollux"""
+        if self.gollux_walk_sounds:
+            random.choice(self.gollux_walk_sounds).play()
+    
+    def play_gollux_attack(self):
+        """Play random attack sound for Gollux"""
+        if self.gollux_attack_sounds:
+            random.choice(self.gollux_attack_sounds).play()
+    
+    def play_gollux_death(self):
+        """Play death sound for Gollux"""
+        if self.gollux_death_sound:
+            self.gollux_death_sound.play()
 

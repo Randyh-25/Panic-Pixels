@@ -7,7 +7,7 @@ from player import Player, Camera
 from enemy import Enemy
 from projectile import Projectile
 from experience import Experience, LevelUpEffect
-from utils import pause_menu, highest_score_menu, load_game_data, save_game_data
+from utils import pause_menu, highest_score_menu, load_game_data, save_game_data, show_victory_screen
 from maps import Map
 from ui import HealthBar, MoneyDisplay, XPBar, InteractionButton, render_text_with_border
 from settings import load_font
@@ -15,7 +15,8 @@ from particles import ParticleSystem
 from partner import Partner
 from hit_effects import RockHitEffect
 from devil import Devil
-from ui import MiniMap  # Add this to your imports
+from ui import MiniMap
+from gollux_boss import Gollux
 
 def create_blur_surface(surface):
     scale = 0.25
@@ -126,6 +127,15 @@ def main(screen, clock, sound_manager, main_menu_callback):
     from ui import DevilShop
     devil_shop = DevilShop(sound_manager)
     
+    # Add boss initialization
+    boss = None
+    boss_spawn_time = 5*60*1000  # 5 minutes
+    boss_spawned = False
+    boss_defeated = False
+    
+    show_boss_warning = False
+    boss_warning_timer = 0
+    
     while running:
         dt = clock.tick(FPS) / 1000.0
         
@@ -142,7 +152,9 @@ def main(screen, clock, sound_manager, main_menu_callback):
                     else:
                         paused = True
                         pause_start = pygame.time.get_ticks()  # MULAI PAUSE
-                        pause_menu(screen, main_menu_callback)
+                        quit_to_menu = pause_menu(screen, main_menu_callback)
+                        if quit_to_menu:
+                            return  # Keluar dari fungsi main dan kembali ke main_menu
                         paused = False
                         if pause_start is not None:
                             pause_ticks += pygame.time.get_ticks() - pause_start  # TAMBAHKAN DURASI PAUSE
@@ -241,7 +253,15 @@ def main(screen, clock, sound_manager, main_menu_callback):
                                 if projectile.alive():
                                     projectile.damage = 1000
                             cheat_message = "Damage tinggi!"
-
+                        elif cheat_input == "spawnboss":
+                            if not boss_spawned:
+                                boss = Gollux(game_map.width, game_map.height, player.rect.center)
+                                boss.sound_manager = sound_manager  # Set sound manager reference
+                                all_sprites.add(boss)
+                                boss_spawned = True
+                                cheat_message = "Boss Gollux muncul!"
+                            else:
+                                cheat_message = "Boss sudah ada!"
                         else:
                             cheat_message = "Command tidak dikenal."
                         cheat_input = ""
@@ -255,28 +275,38 @@ def main(screen, clock, sound_manager, main_menu_callback):
 
         enemy_spawn_timer += 1
         MAX_ENEMIES = 15
-        if enemy_spawn_timer >= 60 and len(enemies) < MAX_ENEMIES:
+        # Only spawn enemies if boss isn't spawned yet
+        if enemy_spawn_timer >= 60 and len(enemies) < MAX_ENEMIES and not boss_spawned:
             enemy = Enemy((player.rect.centerx, player.rect.centery))
             all_sprites.add(enemy)
             enemies.add(enemy)
             enemy_spawn_timer = 0
 
         projectile_timer += 1
-        if projectile_timer >= 30 and len(enemies) > 0:
+        # Ubah kondisi menjadi memeriksa boss atau enemies
+        if projectile_timer >= 30 and (len(enemies) > 0 or (boss is not None and not boss.is_defeated)):
             closest_enemy = None
             min_dist = float('inf')
             
             shoot_radius = 500
-            for enemy in enemies:
-                # Skip enemy yang sedang dalam animasi mati
-                if enemy.is_dying:
-                    continue
-                    
-                dist = math.hypot(enemy.rect.centerx - player.rect.centerx,
-                              enemy.rect.centery - player.rect.centery)
-                if dist < min_dist and dist < shoot_radius:
+            # First check if boss exists and target it with priority
+            if boss and not boss.is_defeated:
+                dist = math.hypot(boss.rect.centerx - player.rect.centerx,
+                                 boss.rect.centery - player.rect.centery)
+                if dist < shoot_radius:
+                    closest_enemy = boss
                     min_dist = dist
-                    closest_enemy = enemy
+            # Jika tidak ada boss atau boss terlalu jauh, coba target musuh biasa
+            if closest_enemy is None:
+                for enemy in enemies:
+                    if enemy.is_dying:
+                        continue
+                        
+                    dist = math.hypot(enemy.rect.centerx - player.rect.centerx,
+                                    enemy.rect.centery - player.rect.centery)
+                    if dist < min_dist and dist < shoot_radius:
+                        min_dist = dist
+                        closest_enemy = enemy
 
             if closest_enemy:
                 for projectile in projectile_pool:
@@ -284,7 +314,7 @@ def main(screen, clock, sound_manager, main_menu_callback):
                         start_pos = partner.get_shooting_position()
                         target_pos = (closest_enemy.rect.centerx, closest_enemy.rect.centery)
                         
-                        partner.shoot_at(target_pos)
+                        partner.shoot_at(target_pos)  # This will now play the sound
                         
                         # Get projectile type based on partner type
                         projectile_type = partner.get_projectile_type()
@@ -311,11 +341,12 @@ def main(screen, clock, sound_manager, main_menu_callback):
                     blur_surface = create_blur_surface(screen.copy())
                     break
 
+        # Di loop utama game
         projectiles.update()
-
         experiences.update()
         effects.update(dt)
 
+        # Check for projectiles hitting enemies
         hits = pygame.sprite.groupcollide(projectiles, enemies, True, False)
         for projectile, hit_enemies in hits.items():
             for enemy in hit_enemies:
@@ -337,6 +368,24 @@ def main(screen, clock, sound_manager, main_menu_callback):
                         experiences.add(exp)
                         # Tambah uang ke player (solo)
                         player.session_money += 5
+
+        # Check for projectiles hitting boss - pastikan ini dijalankan SETELAH projectiles.update()
+        if boss and not boss.is_defeated:
+            hits = pygame.sprite.spritecollide(boss, projectiles, True)
+            for projectile in hits:
+                # Add hit effect
+                hit_effect = RockHitEffect((boss.rect.centerx, boss.rect.centery))
+                all_sprites.add(hit_effect)
+                effects.add(hit_effect)
+                
+                # Deal damage to boss
+                boss_defeated = boss.take_hit(projectile.damage)
+                
+                # If boss is defeated, trigger victory
+                if boss_defeated:
+                    show_victory_screen(screen, player, sound_manager, main_menu_callback,
+                                        "You've defeated Gollux! The world is saved!")
+                    return
 
         if death_transition:
             animation_finished = player.update_death_animation(dt)
@@ -403,6 +452,8 @@ def main(screen, clock, sound_manager, main_menu_callback):
             
             for sprite in all_sprites:
                 if isinstance(sprite, Enemy):
+                    sprite.draw(screen, (camera.x, camera.y))
+                elif isinstance(sprite, Gollux):
                     sprite.draw(screen, (camera.x, camera.y))
                 else:
                     screen.blit(sprite.image, camera.apply(sprite))
@@ -489,7 +540,7 @@ def main(screen, clock, sound_manager, main_menu_callback):
         xp_bar.draw(screen, player.xp, player.max_xp, player.level)
         
         # Draw mini map
-        mini_map.draw(screen, player, None, enemies, devil)
+        mini_map.draw(screen, player, None, enemies, devil, boss)
         
         # Draw timer
         screen.blit(timer_surface, timer_rect)
@@ -497,6 +548,57 @@ def main(screen, clock, sound_manager, main_menu_callback):
         # Draw interaction button after drawing player (should be on top)
         interaction_button.draw(screen, (camera.x, camera.y))
         
+        # Check for boss spawn
+        elapsed_ms = pygame.time.get_ticks() - session_start_ticks - cheat_pause_ticks - pause_ticks
+        if not boss_spawned and elapsed_ms >= boss_spawn_time:
+            boss = Gollux(game_map.width, game_map.height, player.rect.center)
+            boss.sound_manager = sound_manager  # Set sound manager reference
+            all_sprites.add(boss)  # Tambahkan ke all_sprites
+            boss_spawned = True
+
+            # Show boss warning
+            boss_warning_timer = pygame.time.get_ticks()
+            show_boss_warning = True
+        
+        # Update boss if spawned
+        if boss and not boss_defeated:
+            target, damage = boss.update(dt, player)
+            if target and damage > 0:
+                player.health -= damage
+                if player.health <= 0:
+                    player.start_death_animation()
+                    death_transition = True
+                    blur_surface = create_blur_surface(screen.copy())
+        
+        # Add near where you handle other warnings/notifications
+        if show_boss_warning:
+            current_time = pygame.time.get_ticks()
+            elapsed_time = current_time - boss_warning_timer
+            
+            if elapsed_time < 3000:  # Show for 3 seconds
+                warning_font = load_font(48)
+                warning_text = warning_font.render("BOSS APPROACHING!", True, (255, 0, 0))
+                warning_rect = warning_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
+                
+                # Add pulsing effect
+                pulse = math.sin(current_time * 0.01) * 10 + 255
+                pulse = max(0, min(255, pulse))
+                warning_text.set_alpha(pulse)
+                
+                screen.blit(warning_text, warning_rect)
+            else:
+                show_boss_warning = False
+
         pygame.display.flip()
 
     return
+
+# Contoh di solo.py atau coop.py
+def handle_pause():
+    quit_to_menu = pause_menu(screen, sound_manager)
+    if quit_to_menu:
+        # Kembali ke menu utama
+        return True
+    else:
+        # Lanjutkan game
+        return False
