@@ -1,5 +1,6 @@
 import pygame
 import os
+import math
 from settings import WIDTH, HEIGHT, WHITE, BLACK, FONT_PATH
 from utils import load_game_data 
 from settings import load_font 
@@ -516,13 +517,16 @@ class MiniMap:
         self.enemy_color = (255, 0, 0)          # Red for enemies
         self.devil_color = (150, 0, 0)          # Dark red for devil outline
         self.devil_color_inner = (0, 0, 0)      # Black for devil inner circle
+        self.boss_color = (255, 0, 255)         # Purple for boss
+        self.boss_color_inner = (180, 0, 180)   # Inner color for boss
         
         # Entity sizes
         self.player_size = 5
         self.other_player_size = 4
         self.enemy_size = 3
         self.devil_size = 7
-    
+        self.boss_size = 9                      # Boss is larger than devil
+
     def update_map_size(self, map_width, map_height):
         """Update map size if needed"""
         self.map_width = map_width
@@ -530,7 +534,7 @@ class MiniMap:
         self.scale_x = self.width / map_width
         self.scale_y = self.height / map_height
     
-    def draw(self, screen, player, other_player=None, enemies=None, devil=None):
+    def draw(self, screen, player, other_player=None, enemies=None, devil=None, boss=None):
         # Clear the surface with translucent dark background
         self.surface.fill((20, 20, 20, 180))
         
@@ -553,6 +557,17 @@ class MiniMap:
             # Draw devil as a larger circle with two colors
             pygame.draw.circle(self.surface, self.devil_color, (mini_x, mini_y), self.devil_size)
             pygame.draw.circle(self.surface, self.devil_color_inner, (mini_x, mini_y), self.devil_size - 2)
+
+        # Draw boss if exists
+        if boss and not getattr(boss, "is_defeated", False):
+            mini_x = int(boss.rect.centerx * self.scale_x)
+            mini_y = int(boss.rect.centery * self.scale_y)
+            # Draw boss as an even larger circle with two colors and pulsing effect
+            size_mod = int(math.sin(pygame.time.get_ticks() * 0.01) * 2)
+            pygame.draw.circle(self.surface, self.boss_color, (mini_x, mini_y), 
+                              self.boss_size + size_mod)
+            pygame.draw.circle(self.surface, self.boss_color_inner, (mini_x, mini_y), 
+                              self.boss_size - 2 + size_mod)
         
         # Draw other player if exists and alive
         if other_player and other_player.health > 0:
