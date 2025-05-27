@@ -16,6 +16,7 @@ from partner import Partner
 from player2 import Player2
 from hit_effects import RockHitEffect
 from devil import Devil
+from gollux_boss import Gollux  # Import Gollux boss class
 
 def create_blur_surface(surface):
     scale = 0.25
@@ -81,7 +82,7 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                     # Di viewport kanan hanya gambar player2 dan partner2
                     if offset_x > 0 and sprite.player_id == 1:
                         continue
-            
+    
             # Hanya gambar sprite jika ada dalam viewport
             if world_view_rect.colliderect(sprite.rect):
                 if isinstance(sprite, Enemy):
@@ -90,6 +91,9 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                     # For Devil, draw in layers to ensure proper ordering
                     sprite.draw_shadow(viewport_surface, (cam_x, cam_y))
                     sprite.draw_character(viewport_surface, (cam_x, cam_y))
+                # Tambahkan kondisi baru untuk Gollux
+                elif isinstance(sprite, Gollux):
+                    sprite.draw(viewport_surface, (cam_x, cam_y))
                 else:
                     # Untuk viewport kanan, kita perlu menyesuaikan posisi x kamera
                     if camera.split_mode and offset_x > 0:
@@ -99,6 +103,28 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                         viewport_surface.blit(sprite.image, (pos_x, pos_y))
                     else:
                         viewport_surface.blit(sprite.image, (sprite.rect.x + cam_x, sprite.rect.y + cam_y))
+
+        # Setelah menggambar semua sprite, tambahkan label di atas kepala player
+        font_label = load_font(28)
+        for p, label, color in [
+            (player1, "Player 1", (0, 255, 0)),
+            (player2, "Player 2", (255, 180, 0))
+        ]:
+            # Filter agar hanya tampil di viewport yang sesuai
+            if camera.split_mode:
+                if offset_x == 0 and getattr(p, "player_id", 1) != 1:
+                    continue
+                if offset_x > 0 and getattr(p, "player_id", 1) != 2:
+                    continue
+            # Jangan tampilkan jika player sedang mati
+            if getattr(p, "is_dying", False):
+                continue
+            # Hitung posisi di layar
+            px = p.rect.centerx + (camera.x2 if (camera.split_mode and offset_x > 0) else camera.x)
+            py = p.rect.top + (camera.y2 if (camera.split_mode and offset_x > 0) else camera.y)
+            label_surface = font_label.render(label, True, color)
+            label_rect = label_surface.get_rect(center=(px, py - 18))
+            viewport_surface.blit(label_surface, label_rect)
 
     # Continue with the rest of split_screen_main function
     all_sprites = pygame.sprite.Group()
@@ -185,6 +211,13 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
     mini_map1 = MiniMap(game_map.width, game_map.height, WIDTH, HEIGHT, player_id=1, position="left")
     mini_map2 = MiniMap(game_map.width, game_map.height, WIDTH, HEIGHT, player_id=2, position="right")
     
+    # Boss spawn variables
+    boss = None
+    boss_spawned = False
+    boss_warning_timer = 0
+    show_boss_warning = False
+    boss_spawn_time = 5 * 60 * 1000  # 5 minutes
+
     while running:
         dt = clock.tick(FPS) / 1000.0
         
@@ -311,6 +344,23 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                                 cheat_message = "Devil muncul!"
                             else:
                                 cheat_message = "Devil sudah ada!"
+                        elif cheat_input == "spawnboss":
+                            if boss is None:
+                                # Spawn near active players
+                                if player1.health > 0 and player2.health > 0:
+                                    midpoint = ((player1.rect.centerx + player2.rect.centerx) // 2, 
+                                               (player1.rect.centery + player2.rect.centery) // 2)
+                                    boss = Gollux(game_map.width, game_map.height, midpoint)
+                                elif player1.health > 0:
+                                    boss = Gollux(game_map.width, game_map.height, player1.rect.center)
+                                else:
+                                    boss = Gollux(game_map.width, game_map.height, player2.rect.center)
+                                    
+                                all_sprites.add(boss)
+                                boss_spawned = True
+                                cheat_message = "Gollux boss spawned!"
+                            else:
+                                cheat_message = "Boss sudah ada!"
                         else:
                             cheat_message = "Command tidak dikenal."
                         cheat_input = ""
@@ -324,49 +374,52 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
 
         enemy_spawn_timer += 1
         MAX_ENEMIES = 15
-        if enemy_spawn_timer >= 60 and len(enemies) < MAX_ENEMIES:
-            # Spawn enemy near the midpoint between players or near the active player
-            if player1.health <= 0:
-                spawn_center = player2.rect.center
-            elif player2.health <= 0:
-                spawn_center = player1.rect.center
-            else:
-                # Use midpoint between players
-                spawn_center = ((player1.rect.centerx + player2.rect.centerx) // 2,
-                             (player1.rect.centery + player2.rect.centery) // 2)
-                
-            enemy = Enemy(spawn_center)
+        # Only spawn enemies if boss isn't spawned yet
+        if enemy_spawn_timer >= 60 and len(enemies) < MAX_ENEMIES and not boss_spawned:
+            enemy = Enemy((
+                (player1.rect.centerx + player2.rect.centerx) // 2,
+                (player1.rect.centery + player2.rect.centery) // 2
+            ))
             all_sprites.add(enemy)
             enemies.add(enemy)
             enemy_spawn_timer = 0
             
         # Also fix partner shooting in split screen mode
         projectile_timer += 1
-        if projectile_timer >= 30 and len(enemies) > 0:
+        # Ubah kondisi menjadi memeriksa boss atau enemies
+        if projectile_timer >= 30 and (len(enemies) > 0 or (boss is not None and not boss.is_defeated)):
             # Handle partner1 shooting
             if player1.health > 0:
                 closest_enemy = None
                 min_dist = float('inf')
                 shoot_radius = 500
                 
-                for enemy in enemies:
-                    # Skip enemy yang sedang dalam animasi mati
-                    if enemy.is_dying:
-                        continue
-                        
-                    dist = math.hypot(enemy.rect.centerx - player1.rect.centerx,
-                                  enemy.rect.centery - player1.rect.centery)
-                    if dist < min_dist and dist < shoot_radius:
+                # First check if boss exists and target it with priority
+                if boss and not boss.is_defeated:
+                    dist = math.hypot(boss.rect.centerx - player1.rect.centerx,
+                                     boss.rect.centery - player1.rect.centery)
+                    if dist < shoot_radius:
+                        closest_enemy = boss
                         min_dist = dist
-                        closest_enemy = enemy
-                        
+                # Jika tidak ada boss atau boss terlalu jauh, coba target musuh biasa
+                if closest_enemy is None:
+                    for enemy in enemies:
+                        if enemy.is_dying:
+                            continue
+                            
+                        dist = math.hypot(enemy.rect.centerx - player1.rect.centerx,
+                                        enemy.rect.centery - player1.rect.centery)
+                        if dist < min_dist and dist < shoot_radius:
+                            min_dist = dist
+                            closest_enemy = enemy
+                
                 if closest_enemy:
                     for projectile in projectile_pool1:
                         if not projectile.alive():
                             start_pos = partner1.get_shooting_position()
                             target_pos = (closest_enemy.rect.centerx, closest_enemy.rect.centery)
                             
-                            partner1.shoot_at(target_pos)
+                            partner1.shoot_at(target_pos)  # This will now play the sound
                             
                             # Get projectile type based on partner type
                             projectile_type = partner1.get_projectile_type()
@@ -377,23 +430,31 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                 else:
                     partner1.stop_shooting()
             
-            # Handle partner2 shooting
+            # Handle partner2 shooting (lakukan perubahan serupa)
             if player2.health > 0:
                 closest_enemy = None
                 min_dist = float('inf')
                 shoot_radius = 500
                 
-                for enemy in enemies:
-                    # Skip enemy yang sedang dalam animasi mati
-                    if enemy.is_dying:
-                        continue
-                        
-                    dist = math.hypot(enemy.rect.centerx - player2.rect.centerx,
-                                  enemy.rect.centery - player2.rect.centery)
-                    if dist < min_dist and dist < shoot_radius:
+                # First check if boss exists and target it with priority
+                if boss and not boss.is_defeated:
+                    dist = math.hypot(boss.rect.centerx - player2.rect.centerx,
+                                     boss.rect.centery - player2.rect.centery)
+                    if dist < shoot_radius:
+                        closest_enemy = boss
                         min_dist = dist
-                        closest_enemy = enemy
-                        
+                # Jika tidak ada boss atau boss terlalu jauh, coba target musuh biasa
+                if closest_enemy is None:
+                    for enemy in enemies:
+                        if enemy.is_dying:
+                            continue
+                            
+                        dist = math.hypot(enemy.rect.centerx - player2.rect.centerx,
+                                        enemy.rect.centery - player2.rect.centery)
+                        if dist < min_dist and dist < shoot_radius:
+                            min_dist = dist
+                            closest_enemy = enemy
+                
                 if closest_enemy:
                     for projectile in projectile_pool2:
                         if not projectile.alive():
@@ -453,6 +514,7 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
 
         # Handle projectile hits
         for projs in [projectiles1, projectiles2]:
+            # Deteksi tumbukan dengan musuh biasa
             hits = pygame.sprite.groupcollide(projs, enemies, True, False)
             for projectile, hit_enemies in hits.items():
                 for enemy in hit_enemies:
@@ -475,6 +537,24 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                             # Tambah uang ke player (coop - dibagi rata)
                             player1.session_money += 3
                             player2.session_money += 2
+
+            # Deteksi tumbukan dengan boss
+            if boss and not boss.is_defeated:
+                hits = pygame.sprite.spritecollide(boss, projs, True)
+                for projectile in hits:
+                    # Add hit effect
+                    hit_effect = RockHitEffect((boss.rect.centerx, boss.rect.centery))
+                    all_sprites.add(hit_effect)
+                    effects.add(hit_effect)
+                    
+                    # Deal damage to boss
+                    boss_defeated = boss.take_hit(projectile.damage)
+                    
+                    # If boss is defeated, trigger victory
+                    if boss_defeated:
+                        show_victory_screen(screen, [player1, player2], sound_manager, main_menu_callback,
+                                            "You've defeated Gollux! The world is saved!")
+                        return
 
         # Handle death transition
         if death_transition:
@@ -707,10 +787,86 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
         # Draw minimaps
         mini_map1.adjust_for_split_screen(camera.split_mode, WIDTH//2)
         mini_map2.adjust_for_split_screen(camera.split_mode, WIDTH//2)
-        mini_map1.draw(screen, player1, player2, enemies, devil)
-        mini_map2.draw(screen, player2, player1, enemies, devil)
+        mini_map1.draw(screen, player1, player2, enemies, devil, boss)
+        mini_map2.draw(screen, player2, player1, enemies, devil, boss)
                 
+        # --- BOSS WARNING NOTIFICATION ---
+        if show_boss_warning:
+            # Draw semi-transparent background
+            warning_bg = pygame.Surface((WIDTH, HEIGHT))
+            warning_bg.fill((0, 0, 0, 180))  # Black with transparency
+            screen.blit(warning_bg, (0, 0))
+            
+            # Draw warning text
+            warning_font = load_font(48)
+            warning_text = "A powerful enemy has appeared!"
+            warning_surface = warning_font.render(warning_text, True, (255, 0, 0))
+            warning_rect = warning_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
+            screen.blit(warning_surface, warning_rect)
+            
+            # Draw countdown timer
+            remaining_time = (boss_spawn_time - (now - boss_warning_timer)) // 1000
+            countdown_text = f"Boss spawns in: {remaining_time}"
+            countdown_surface = warning_font.render(countdown_text, True, (255, 255, 0))
+            countdown_rect = countdown_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 10))
+            screen.blit(countdown_surface, countdown_rect)
+            
+            # Hide warning after 5 seconds
+            if now - boss_warning_timer >= 5000:
+                show_boss_warning = False
+        # --- END BOSS WARNING NOTIFICATION ---
+                
+        # Boss spawn section - normal
+        if not boss_spawned and elapsed_ms >= boss_spawn_time:
+            # In co-op, spawn near the midpoint between two players if both alive
+            if player1.health > 0 and player2.health > 0:
+                midpoint = ((player1.rect.centerx + player2.rect.centerx) // 2, 
+                           (player1.rect.centery + player2.rect.centery) // 2)
+                boss = Gollux(game_map.width, game_map.height, midpoint)
+            elif player1.health > 0:
+                boss = Gollux(game_map.width, game_map.height, player1.rect.center)
+            else:
+                boss = Gollux(game_map.width, game_map.height, player2.rect.center)
+                
+            boss.sound_manager = sound_manager  # Set sound manager reference
+            all_sprites.add(boss)
+            boss_spawned = True
+            
+            # Show boss warning
+            boss_warning_timer = pygame.time.get_ticks()
+            show_boss_warning = True
+
+        # Cheat section for boss spawn
+        elif cheat_input == "spawnboss":
+            if boss is None:
+                # Spawn near active players
+                if player1.health > 0 and player2.health > 0:
+                    midpoint = ((player1.rect.centerx + player2.rect.centerx) // 2, 
+                               (player1.rect.centery + player2.rect.centery) // 2)
+                    boss = Gollux(game_map.width, game_map.height, midpoint)
+                elif player1.health > 0:
+                    boss = Gollux(game_map.width, game_map.height, player1.rect.center)
+                else:
+                    boss = Gollux(game_map.width, game_map.height, player2.rect.center)
+                
+                boss.sound_manager = sound_manager  # Set sound manager reference
+                all_sprites.add(boss)
+                boss_spawned = True
+                cheat_message = "Gollux boss spawned!"
+            else:
+                cheat_message = "Boss sudah ada!"
+
         pygame.display.flip()
 
     return
+
+# Contoh di solo.py atau coop.py
+def handle_pause():
+    quit_to_menu = pause_menu(screen, sound_manager)
+    if quit_to_menu:
+        # Kembali ke menu utama
+        return True
+    else:
+        # Lanjutkan game
+        return False
 
