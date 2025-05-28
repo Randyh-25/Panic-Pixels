@@ -147,8 +147,8 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
     player1.rect.center = (game_map.width // 2 - 100, game_map.height // 2)
     player2.rect.center = (game_map.width // 2 + 100, game_map.height // 2)
     
-    partner1 = Partner(player1)
-    partner2 = Partner(player2)
+    partner1 = Partner(player1, sound_manager=sound_manager)
+    partner2 = Partner(player2, sound_manager=sound_manager)
     
     all_sprites.add(player1, player2, partner1, partner2)
 
@@ -552,8 +552,22 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                     
                     # If boss is defeated, trigger victory
                     if boss_defeated:
-                        show_victory_screen(screen, [player1, player2], sound_manager, main_menu_callback,
-                                            "You've defeated Gollux! The world is saved!")
+                        # Hitung skor dan waktu bermain
+                        elapsed_ms = pygame.time.get_ticks() - session_start_ticks - cheat_pause_ticks - pause_ticks
+                        elapsed_seconds = elapsed_ms // 1000
+                        
+                        # Tambahkan reward uang untuk kedua pemain
+                        player1.session_money += 1000
+                        player2.session_money += 1000
+                        
+                        total_score = player1.session_money + player2.session_money
+                        
+                        # Transisi kemenangan
+                        victory_transition(screen)
+                        
+                        # Tampilkan layar kemenangan dengan pesan kustom
+                        show_victory_screen(screen, total_score, elapsed_seconds, sound_manager,
+                                           "You've defeated Gollux together! The world is saved!")
                         return
 
         # Handle death transition
@@ -859,6 +873,54 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
         pygame.display.flip()
 
     return
+
+# Tambahkan fungsi transisi kemenangan
+def victory_transition(surface):
+    """Animasi transisi saat mengalahkan boss"""
+    # White flash effect
+    flash_surface = pygame.Surface((WIDTH, HEIGHT))
+    flash_surface.fill((255, 255, 255))
+    
+    # Efek flash putih dengan fade out
+    for alpha in range(255, 0, -5):
+        surface_copy = surface.copy()
+        flash_surface.set_alpha(alpha)
+        surface_copy.blit(flash_surface, (0, 0))
+        pygame.display.flip()
+        pygame.time.delay(5)
+    
+    # Efek partikel emas
+    gold_particles = []
+    for _ in range(200):
+        gold_particles.append({
+            'x': random.randint(0, WIDTH),
+            'y': random.randint(HEIGHT//2, HEIGHT*2),  # Start from bottom half
+            'size': random.randint(2, 8),
+            'speed': random.uniform(2, 6),
+            'color': (
+                random.randint(200, 255),  # Red
+                random.randint(180, 220),  # Green
+                random.randint(0, 100)     # Blue - Low for gold color
+            )
+        })
+    
+    # Animasikan partikel selama 1.5 detik
+    start_time = pygame.time.get_ticks()
+    while pygame.time.get_ticks() - start_time < 1500:
+        surface_copy = surface.copy()
+        
+        # Update dan gambar partikel
+        for p in gold_particles:
+            p['y'] -= p['speed']
+            pygame.draw.circle(
+                surface_copy,
+                p['color'],
+                (int(p['x']), int(p['y'])),
+                p['size']
+            )
+        
+        pygame.display.flip()
+        pygame.time.delay(16)  # ~60fps
 
 # Contoh di solo.py atau coop.py
 def handle_pause():

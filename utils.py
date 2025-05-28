@@ -3,6 +3,8 @@ import pickle
 import pygame
 import pygame_menu
 import json
+import random
+import math
 from settings import WIDTH, HEIGHT, load_font, FONT_PATH, BLACK, WHITE
 
 SAVE_FILE = "game.dat"
@@ -266,7 +268,7 @@ def splitscreen_game_over(screen, player1, player2, main_menu_callback, replay_c
     menu.add.button('Main Menu', main_menu_callback)
     menu.mainloop(screen)
 
-def show_victory_screen(screen, score, time_played, sound_manager=None):
+def show_victory_screen(screen, score, time_played, sound_manager=None, victory_message="VICTORY!"):
     """Layar kemenangan dengan tema yang diperbarui"""
     # Buat menu dengan tema yang konsisten
     menu = create_themed_pause_menu(screen, 'VICTORY')
@@ -278,7 +280,7 @@ def show_victory_screen(screen, score, time_played, sound_manager=None):
     
     # Konten menu
     menu.add.vertical_margin(20)
-    menu.add.label('YOU DEFEATED THE BOSS!', font_size=40, font_color=(255, 215, 0))
+    menu.add.label(victory_message, font_size=40, font_color=(255, 215, 0))
     menu.add.vertical_margin(20)
     menu.add.label(f'FINAL SCORE: {score}', font_size=32)
     menu.add.label(f'TIME: {time_str}', font_size=32)
@@ -310,10 +312,13 @@ def show_victory_screen(screen, score, time_played, sound_manager=None):
                 
             def play_key_add_sound(self) -> None:
                 self.sound_manager.play_ui_hover()
-                
+        
         menu.set_sound(SoundEngine(sound_manager))
+        
+        # Play victory sound
+        sound_manager.play_victory_sound()
     
-    # Tampilan victory dengan efek partikel
+    # Tampilan victory dengan efek partikel dan transisi fade-in
     particles = []
     for _ in range(100):
         particles.append({
@@ -329,6 +334,39 @@ def show_victory_screen(screen, score, time_played, sound_manager=None):
             'angle': random.uniform(0, 2 * math.pi)
         })
     
+    # Transisi fade-in untuk layar kemenangan
+    fade_surface = pygame.Surface((WIDTH, HEIGHT))
+    fade_surface.fill((0, 0, 0))
+    
+    # Fade in dari hitam
+    for alpha in range(255, 0, -5):
+        # Semi-transparan background
+        bg_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        bg_surface.fill((0, 0, 20, 160))
+        screen.blit(bg_surface, (0, 0))
+        
+        # Update dan gambar partikel
+        for p in particles:
+            p['y'] -= p['speed']
+            if p['y'] < -10:
+                p['y'] = HEIGHT + 10
+                p['x'] = random.randint(0, WIDTH)
+            
+            pygame.draw.circle(
+                screen,
+                p['color'],
+                (int(p['x']), int(p['y'])),
+                p['size']
+            )
+        
+        # Fade effect
+        fade_surface.set_alpha(alpha)
+        screen.blit(fade_surface, (0, 0))
+        
+        pygame.display.flip()
+        pygame.time.delay(10)
+    
+    # Main menu loop
     while True:
         events = pygame.event.get()
         for event in events:
