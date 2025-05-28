@@ -3,7 +3,7 @@ import math
 import os
 
 class Partner(pygame.sprite.Sprite):
-    def __init__(self, player, sound_manager=None):
+    def __init__(self, player):
         super().__init__()
         self.player = player
         self.player_id = player.player_id
@@ -51,8 +51,6 @@ class Partner(pygame.sprite.Sprite):
         self.partner_type = "eagle"  # Default type
         self.width, self.height = 48, 48  # Default dimensions for scaling
         
-        self.sound_manager = sound_manager
-
     def update_position(self):
         self.rect.centerx = self.player.rect.centerx + math.cos(math.radians(self.angle)) * self.orbit_radius
         self.rect.centery = self.player.rect.centery + math.sin(math.radians(self.angle)) * self.orbit_radius
@@ -75,10 +73,9 @@ class Partner(pygame.sprite.Sprite):
         self.shooting_direction = 'left' if target_pos[0] < self.rect.centerx else 'right'
         self.shooting_target = target_pos  # Store target position for projectile creation
         
-        # Tambahkan panggilan suara di sini juga
-        if self.sound_manager:
-            print("DEBUG: Playing partner throw sound from shoot_at")
-            self.sound_manager.play_random_partner_throw(self.partner_type)
+        # Play throw sound if eagle type (only eagle uses rock projectiles)
+        if self.partner_type == "eagle" and hasattr(self.player, 'sound_manager'):
+            self.player.sound_manager.play_random_partner_throw("eagle")
 
     def stop_shooting(self):
         self.is_shooting = False
@@ -146,11 +143,3 @@ class Partner(pygame.sprite.Sprite):
                 print(f"Error changing partner type: {e}")
                 return False
         return False
-    
-    def shoot(self, target_pos):
-        self.is_shooting = True
-        self.shooting_direction = 'left' if target_pos[0] < self.rect.centerx else 'right'
-        
-        # Tambahkan panggilan suara
-        if self.sound_manager:
-            self.sound_manager.play_random_partner_throw(self.partner_type)

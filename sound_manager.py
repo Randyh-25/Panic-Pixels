@@ -37,7 +37,7 @@ class SoundManager:
         for i in range(2):
             throw_sound = self.load_sound(os.path.join("assets", "sound", "partner", f"throw{i}.ogg"))
             if throw_sound:
-                throw_sound.set_volume(0.2)
+                throw_sound.set_volume(0.1)  # Set reasonable volume
                 self.partner_throw_sounds.append(throw_sound)
                 
         # Load Boss Gollux sound effects
@@ -151,30 +151,21 @@ class SoundManager:
     
     def play_random_partner_throw(self, partner_type="eagle"):
         """Play a random throw sound effect for the partner"""
-        if hasattr(self, 'partner_throw_sounds') and self.partner_throw_sounds:
-            sound = random.choice(self.partner_throw_sounds)
-            sound.set_volume(0.2)
-            sound.play()
+        if partner_type == "eagle" and self.partner_throw_sounds:
+            random.choice(self.partner_throw_sounds).play()
     
     def play_gollux_walk(self):
-        """Play random Gollux walk sound effect"""
-        if hasattr(self, 'gollux_walk_sounds') and self.gollux_walk_sounds:
-            sound = random.choice(self.gollux_walk_sounds)
-            sound.play()
-
+        """Play random walk sound for Gollux"""
+        if self.gollux_walk_sounds:
+            random.choice(self.gollux_walk_sounds).play()
+    
     def play_gollux_attack(self):
-        """Play random Gollux attack sound effect"""
-        if hasattr(self, 'gollux_attack_sounds') and self.gollux_attack_sounds:
-            sound = random.choice(self.gollux_attack_sounds)
-            sound.play()
-
+        """Play random attack sound for Gollux"""
+        if self.gollux_attack_sounds:
+            random.choice(self.gollux_attack_sounds).play()
+    
     def play_gollux_death(self):
-        """Play Gollux death sound effect"""
-        if hasattr(self, 'gollux_death_sound') and self.gollux_death_sound:
+        """Play death sound for Gollux"""
+        if self.gollux_death_sound:
             self.gollux_death_sound.play()
-
-    def play_gollux_hurt(self):
-        """Play Gollux hurt sound effect"""
-        if hasattr(self, 'gollux_hurt_sound') and self.gollux_hurt_sound:
-            self.gollux_hurt_sound.play()
 
