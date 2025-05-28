@@ -71,8 +71,9 @@ class Player2(pygame.sprite.Sprite):  # Kelas Player2 mewarisi Sprite dari pygam
         self.is_dying = True
         self.death_frame = 0
         self.death_timer = 0
+        self.death_animation_complete = False  # Reset flag
         
-        # Jika ada sound manager, mainkan suara mati
+        # Play death sound
         if hasattr(self, 'sound_manager') and self.sound_manager:
             self.sound_manager.play_player_death()
 
@@ -80,15 +81,24 @@ class Player2(pygame.sprite.Sprite):  # Kelas Player2 mewarisi Sprite dari pygam
         if not self.is_dying:
             return False
 
-        self.death_timer += dt
-        if self.death_timer >= self.death_animation_speed:
-            self.death_timer = 0
-            self.death_frame += 1
-            if self.death_frame < len(self.animations.animations['death']):
-                self.image = self.animations.animations['death'][self.death_frame]
-                return False  # Belum selesai
-            return True  # Animasi selesai
-        return False
+        # Only process if the animation isn't already complete
+        if not self.death_animation_complete:  
+            self.death_timer += dt
+            if self.death_timer >= self.death_animation_speed:
+                self.death_timer = 0
+                self.death_frame += 1
+                if self.death_frame < len(self.animations.animations['death']):
+                    self.image = self.animations.animations['death'][self.death_frame]
+                else:
+                    # Set the flag when animation completes
+                    self.death_animation_complete = True
+                    # Keep the last frame visible
+                    self.death_frame = len(self.animations.animations['death']) - 1
+                    self.image = self.animations.animations['death'][self.death_frame]
+                    return True
+    
+        # Return True if animation has completed, False otherwise
+        return self.death_animation_complete
 
     def animate(self, dt):  # Mengatur animasi gerakan atau idle
         if self.is_dying:

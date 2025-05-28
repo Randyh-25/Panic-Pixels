@@ -17,6 +17,8 @@ from hit_effects import RockHitEffect
 from devil import Devil
 from ui import MiniMap
 from gollux_boss import Gollux
+from bi_enemy import BiEnemy
+from bi_projectile import BiProjectile
 
 def create_blur_surface(surface):
     scale = 0.25
@@ -45,6 +47,8 @@ def main(screen, clock, sound_manager, main_menu_callback):
     projectiles = pygame.sprite.Group()
     experiences = pygame.sprite.Group()
     effects = pygame.sprite.Group()  
+    bi_enemies = pygame.sprite.Group()
+    bi_projectiles = pygame.sprite.Group()
 
     player = Player()
     player.game_map = game_map
@@ -135,6 +139,10 @@ def main(screen, clock, sound_manager, main_menu_callback):
     
     show_boss_warning = False
     boss_warning_timer = 0
+    
+    game_time_seconds = 0
+    bi_spawn_timer = 0
+    last_second = 0
     
     while running:
         dt = clock.tick(FPS) / 1000.0
@@ -337,9 +345,18 @@ def main(screen, clock, sound_manager, main_menu_callback):
                 player.health -= damage
                 if player.health <= 0:
                     player.start_death_animation()
+                    # Track that the death animation has started
+                    player.is_dying = True
+
+        # Check if player is dying and death animation is complete
+        if player.is_dying:
+            animation_finished = player.update_death_animation(dt)
+            
+            if animation_finished or player.death_animation_complete:
+                # Transition to game over
+                if not death_transition:  # Only trigger once
                     death_transition = True
                     blur_surface = create_blur_surface(screen.copy())
-                    break
 
         # Di loop utama game
         projectiles.update()
@@ -395,6 +412,35 @@ def main(screen, clock, sound_manager, main_menu_callback):
                                        "You've defeated Gollux! The world is saved!")
                     return
 
+        # Update Bi enemies and handle their projectiles
+        for bi in bi_enemies:
+            target, damage = bi.update(player, enemies)
+            
+            # If Bi needs to create a projectile
+            if target and damage > 0:
+                # Create a new sting projectile
+                start_pos = bi.rect.center
+                target_pos = target.rect.center
+                
+                sting = BiProjectile(start_pos, target_pos, bi.sting_image)
+                all_sprites.add(sting)
+                bi_projectiles.add(sting)
+
+        # Update Bi projectiles
+        bi_projectiles.update()
+
+        # Check for Bi projectiles hitting player
+        if player.health > 0:
+            hits = pygame.sprite.spritecollide(player, bi_projectiles, True)
+            for projectile in hits:
+                player.health -= projectile.damage
+                # Optional: Add hit effect here
+                
+                if player.health <= 0:
+                    player.start_death_animation()
+                    # Track that the death animation has started
+                    player.is_dying = True
+
         if death_transition:
             animation_finished = player.update_death_animation(dt)
             
@@ -440,7 +486,8 @@ def main(screen, clock, sound_manager, main_menu_callback):
                     effects.add(level_effect)
                     all_sprites.add(level_effect)
 
-            camera.update(player)
+            if not player.is_dying and player.health > 0:
+                camera.update(player)
 
             game_map.draw(screen, camera)
 
@@ -484,6 +531,22 @@ def main(screen, clock, sound_manager, main_menu_callback):
         timer_rect = timer_surface.get_rect(center=(WIDTH // 2, 40))
         screen.blit(timer_surface, timer_rect)
         # --- END SESSION TIMER ---
+
+        # Track game time
+        current_second = pygame.time.get_ticks() // 1000
+        if current_second > last_second:
+            game_time_seconds = current_second
+            last_second = current_second
+
+        # Spawn Bi enemies after 1 minute with a slower spawn rate
+        if game_time_seconds >= 60:  # Only spawn Bi after 1 minute
+            bi_spawn_timer += 1
+            if bi_spawn_timer >= 200 and len(bi_enemies) < 3:  # Slower spawn rate, max 3 Bi enemies
+                bi_enemy = BiEnemy((player.rect.centerx, player.rect.centery))
+                all_sprites.add(bi_enemy)
+                enemies.add(bi_enemy)  # Add to regular enemies group for collisions
+                bi_enemies.add(bi_enemy)  # Also add to bi_enemies group for specialized updates
+                bi_spawn_timer = 0
 
         now = pygame.time.get_ticks()
         if devil is None and now >= next_devil_time:

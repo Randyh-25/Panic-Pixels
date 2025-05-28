@@ -31,6 +31,7 @@ class Player(pygame.sprite.Sprite):
         self.death_frame = 0
         self.death_animation_speed = 0.1
         self.death_timer = 0
+        self.death_animation_complete = False  # Add this missing attribute
         self.was_moving = False
         self.step_timer = 0
         self.step_delay = 300
@@ -79,25 +80,46 @@ class Player(pygame.sprite.Sprite):
         self.is_dying = True
         self.death_frame = 0
         self.death_timer = 0
+        self.death_animation_complete = False  # Make sure this flag is reset
         
         # Play death sound
         if hasattr(self, 'sound_manager') and self.sound_manager:
             self.sound_manager.play_player_death()
-        
+
     def update_death_animation(self, dt):
         if not self.is_dying:
             return False
+
+        # Only process if the animation isn't already complete
+        if not self.death_animation_complete:
+            self.death_timer += dt
+            if self.death_timer >= self.death_animation_speed:
+                self.death_timer = 0
+                self.death_frame += 1
+                if self.death_frame < len(self.animations.animations['death']):
+                    self.image = self.animations.animations['death'][self.death_frame]
+                else:
+                    # Set the flag when animation completes
+                    self.death_animation_complete = True
+                    # Keep the last frame visible
+                    self.death_frame = len(self.animations.animations['death']) - 1
+                    self.image = self.animations.animations['death'][self.death_frame]
+                    return True
+    
+        # Return True if animation has completed, False otherwise
+        return self.death_animation_complete
+
+    def animate_death(self):
+        # Progress the death animation
+        if self.death_animation_timer >= self.animation_speed:
+            self.death_animation_timer = 0
+            self.current_death_frame += 1
             
-        self.death_timer += dt
-        if self.death_timer >= self.death_animation_speed:
-            self.death_timer = 0
-            self.death_frame += 1
-            if self.death_frame < len(self.animations.animations['death']):
-                self.image = self.animations.animations['death'][self.death_frame]
-                return False
-            return True
-        return False
-        
+            # Ensure we don't exceed animation frames
+            if self.current_death_frame >= len(self.animations['death']):
+                self.current_death_frame = len(self.animations['death']) - 1
+                self.death_animation_complete = True
+
     def animate(self, dt):
         if self.is_dying:
             return self.update_death_animation(dt)

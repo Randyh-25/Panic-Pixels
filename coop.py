@@ -17,6 +17,8 @@ from player2 import Player2
 from hit_effects import RockHitEffect
 from devil import Devil
 from gollux_boss import Gollux  # Import Gollux boss class
+from bi_enemy import BiEnemy
+from bi_projectile import BiProjectile
 
 def create_blur_surface(surface):
     scale = 0.25
@@ -133,6 +135,8 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
     projectiles2 = pygame.sprite.Group()
     experiences = pygame.sprite.Group()
     effects = pygame.sprite.Group()
+    bi_enemies = pygame.sprite.Group()
+    bi_projectiles = pygame.sprite.Group()
 
     # Initialize both players and their partners
     player1 = Player()
@@ -173,6 +177,9 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
     paused = False
     enemy_spawn_timer = 0
     projectile_timer = 0
+    game_time_seconds = 0
+    bi_spawn_timer = 0
+    last_second = 0
     
     # Initialize split screen UI
     ui = SplitScreenUI(WIDTH, HEIGHT)
@@ -572,26 +579,26 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
 
         # Handle death transition
         if death_transition:
+            both_players_dead = player1.health <= 0 and player2.health <= 0
+    
             if player1.health <= 0:
                 player1.update_death_animation(dt)
             if player2.health <= 0:
                 player2.update_death_animation(dt)
-                
-            both_dead = player1.health <= 0 and player2.health <= 0
-            if both_dead:
-                death_alpha = min(death_alpha + FADE_SPEED, 255)
-                fade_surface = pygame.Surface((WIDTH, HEIGHT))
-                fade_surface.fill(BLACK)
-                fade_surface.set_alpha(death_alpha)
-                screen.blit(fade_surface, (0, 0))
-                
+            
+            # Check if both players are dead and both animations are complete or if enough time has passed
+            animation_complete = (player1.health <= 0 and player2.health <= 0 and 
+                                 (getattr(player1, 'death_animation_complete', False) or 
+                                  getattr(player2, 'death_animation_complete', False)))
+            
+            if animation_complete:
+                # Proceed with game over
+                death_alpha += FADE_SPEED
                 if death_alpha >= 255:
                     transition_timer += 1
                     if transition_timer >= TRANSITION_DELAY:
-                        # Stop the gameplay music before going to game over screen
-                        sound_manager.stop_gameplay_music()
-                        splitscreen_game_over(screen, player1, player2, main_menu_callback, 
-                            lambda: split_screen_main(screen, clock, sound_manager, main_menu_callback))
+                        # Show game over
+                        splitscreen_game_over(screen, player1, player2, main_menu_callback)
                         return
 
         # Handle experience collection
@@ -730,7 +737,6 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                             (arrow_x + 10*math.sin(angle), arrow_y - 10*math.cos(angle)),
                         ])
             else:
-                # For single view mode
                 dx = devil.rect.centerx - active_player.rect.centerx
                 dy = devil.rect.centery - active_player.rect.centery
                 dist = math.hypot(dx, dy)
@@ -869,6 +875,98 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                 cheat_message = "Gollux boss spawned!"
             else:
                 cheat_message = "Boss sudah ada!"
+
+        # --- BI ENEMY SPAWNING LOGIC ---
+        game_time_seconds = (pygame.time.get_ticks() - session_start_ticks - pause_ticks) // 1000
+        if game_time_seconds > last_second:
+            bi_spawn_timer += 1  # Increment every second
+            
+            # Spawn BiEnemies every 10 seconds
+            if bi_spawn_timer >= 10:
+                # Spawn 2 BiEnemies for variety
+                for _ in range(2):
+                    bi_enemy = BiEnemy((
+                        random.randint(0, game_map.width),
+                        random.randint(0, game_map.height)
+                    ))
+                    all_sprites.add(bi_enemy)
+                    bi_enemies.add(bi_enemy)
+                
+                bi_spawn_timer = 0  # Reset timer
+
+        # Update and draw BiEnemies
+        bi_enemies.update()
+        
+        # Handle BiProjectile hits
+        for proj in bi_projectiles:
+            # Check collision with players
+            if proj.alive():
+                hits = pygame.sprite.spritecollide(proj, [player1, player2], False)
+                for player in hits:
+                    if player.health > 0:  # Only affect alive players
+                        player.health -= proj.damage
+                        proj.kill()  # Destroy projectile on hit
+                        break  # Exit after first hit (one projectile per player)
+        
+        # Draw BiProjectiles
+        for proj in bi_projectiles:
+            if proj.alive():
+                proj.draw(screen)
+        
+        # --- END BI ENEMY LOGIC ---
+
+        # Track game time
+        current_second = pygame.time.get_ticks() // 1000
+        if current_second > last_second:
+            game_time_seconds = current_second
+            last_second = current_second
+
+        # Spawn Bi enemies after 1 minute (60 seconds) with a slower spawn rate
+        if game_time_seconds >= 60:  # Only spawn Bi after 1 minute
+            bi_spawn_timer += 1
+            if bi_spawn_timer >= 200 and len(bi_enemies) < 5:  # Slower spawn rate, max 5 Bi enemies
+                # Choose which player to spawn near
+                target_player = random.choice([player1, player2])
+                if target_player.health > 0:  # Only spawn if player is alive
+                    bi_enemy = BiEnemy(target_player.rect.center)
+                    all_sprites.add(bi_enemy)
+                    enemies.add(bi_enemy)  # Add to regular enemies group for collisions
+                    bi_enemies.add(bi_enemy)  # Also add to bi_enemies group for specialized updates
+                    bi_spawn_timer = 0
+
+        # Update Bi enemies and handle their projectiles
+        for bi in bi_enemies:
+            target, damage = bi.update(random.choice([player1, player2]) if player1.health > 0 and player2.health > 0 else 
+                                  player1 if player1.health > 0 else player2, enemies)
+            
+            # If Bi needs to create a projectile
+            if target and damage > 0:
+                # Create a new sting projectile
+                start_pos = bi.rect.center
+                target_pos = target.rect.center
+                
+                sting = BiProjectile(start_pos, target_pos, bi.sting_image)
+                all_sprites.add(sting)
+                bi_projectiles.add(sting)
+
+        # Update Bi projectiles
+        bi_projectiles.update()
+
+        # Check for Bi projectiles hitting players
+        for player in [player1, player2]:
+            if player.health <= 0:
+                continue
+                
+            hits = pygame.sprite.spritecollide(player, bi_projectiles, True)
+            for projectile in hits:
+                player.health -= projectile.damage
+                # Optional: Add hit effect here
+                
+                if player.health <= 0:
+                    player.start_death_animation()
+                    if not death_transition:
+                        death_transition = True
+                        blur_surface = create_blur_surface(screen.copy())
 
         pygame.display.flip()
 
