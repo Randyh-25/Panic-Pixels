@@ -5,16 +5,16 @@ import os
 
 class BiEnemy(pygame.sprite.Sprite):
     def __init__(self, player_pos):
-        super().__init__()
+        super().__init__() # inisialisasi kelas induk sprite
         # Load shadow image
         try:
             self.shadow_img = pygame.image.load(os.path.join("assets", "shadow.png")).convert_alpha()
-            shadow_size = (100, 50)
+            shadow_size = (100, 50) # menentukan ukuran shadow
             self.shadow_img = pygame.transform.scale(self.shadow_img, shadow_size)
-            self.shadow_offset_y = -20
+            self.shadow_offset_y = -20 # offset vertikal shadow dari posisi sprite
         except pygame.error as e:
             print(f"Error loading shadow sprite: {e}")
-            self.shadow_img = None
+            self.shadow_img = None # set shadow image menjadi gagal jika load gagal
 
         # Load sound effects for bi
         self.hit_sounds = []
@@ -39,13 +39,13 @@ class BiEnemy(pygame.sprite.Sprite):
         # Load idle frames
         self.idle_frames = []
         for i in range(4):
-            path = os.path.join("assets", "enemy", "bi", "idle", f"idle00{i}.png")
+            path = os.path.join("assets", "enemy", "bi", "idle", f"idle00{i}.png") # membuat path file gambar idle
             try:
-                image = pygame.image.load(path).convert_alpha()
-                image = pygame.transform.scale(image, (32, 32))
-                self.idle_frames.append(image)
+                image = pygame.image.load(path).convert_alpha() # load gambar dengan transparansi
+                image = pygame.transform.scale(image, (32, 32)) # mengubah ukuran gambar
+                self.idle_frames.append(image) # menambahkan gambar ke list frame idle
             except pygame.error as e:
-                print(f"Error loading bi idle sprite: {path}")
+                print(f"Error loading bi idle sprite: {path}") # mencetak path jika gagal load
                 print(e)
         
         # Load hit frames
@@ -147,16 +147,16 @@ class BiEnemy(pygame.sprite.Sprite):
         self.is_hit = True
         self.hit_timer = 0
         
-        if self.health <= 0:
-            self.is_dying = True
+        if self.health <= 0: # mencetak apakah health musuh sudah habis
+            self.is_dying = True # menandai musuh yang sedang dalam kondisi mati
             self.current_frame = 0
             # Play death sound
-            if hasattr(self, 'death_sound') and self.death_sound:
-                self.death_sound.play()
+            if hasattr(self, 'death_sound') and self.death_sound:  
+                self.death_sound.play() # memainkan suara kematian
         else:
             # Play random hit sound when damaged but not dying
             if hasattr(self, 'hit_sounds') and self.hit_sounds:
-                random.choice(self.hit_sounds).play()
+                random.choice(self.hit_sounds).play() # pilih dan mainkan suara hit secara acak
 
     def start_hit_animation(self):
         self.is_hit = True
