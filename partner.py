@@ -11,15 +11,17 @@ class Partner(pygame.sprite.Sprite):
         
         self.eagle_frames = []
         for i in range(1, 5):
+            # membangun path ke gambar elang dari
             path = os.path.join('assets', 'partner', 'eagle', f'eagle ({i}).png')
             image = pygame.image.load(path).convert_alpha()
             image = pygame.transform.scale(image, (48, 48))
             self.eagle_frames.append(image)
-            
+
+        # membuat versi frame elang yang menghadap kiri dengan membalik horizontal tiap frame
         self.eagle_left_frames = [pygame.transform.flip(frame, True, False) 
                                 for frame in self.eagle_frames]
         
-        self.skull_frames = []
+        self.skull_frames = [] # list untuk menyimpan frame animasi tengkorak
         for i in range(1, 5):
             path = os.path.join('assets', 'partner', 'skull', f'skull ({i}).png')
             image = pygame.image.load(path).convert_alpha()
@@ -53,15 +55,17 @@ class Partner(pygame.sprite.Sprite):
         self.width, self.height = 48, 48  # Default dimensions for scaling
         
     def update_position(self):
+        # menghitung posisi objek berdasarkan sudut orbit dan jarak orbit terhadap player
         self.rect.centerx = self.player.rect.centerx + math.cos(math.radians(self.angle)) * self.orbit_radius
         self.rect.centery = self.player.rect.centery + math.sin(math.radians(self.angle)) * self.orbit_radius
         
     def animate(self, dt):
-        self.animation_timer += dt
+        self.animation_timer += dt # menambahkan waktu animasi 
         if self.animation_timer >= self.animation_speed:
-            self.animation_timer = 0
+            self.animation_timer = 0 # reset timer animasi
             self.frame_index = (self.frame_index + 1) % len(self.frames)
-            
+
+            # pilih set frame animasi berdasarkan kondisi menembak dan arah
             if self.is_shooting:
                 self.frames = self.left_frames if self.shooting_direction == 'left' else self.eagle_frames
             else:
@@ -104,17 +108,17 @@ class Partner(pygame.sprite.Sprite):
             # Use correct frames based on direction and shooting status
             if self.is_shooting:
                 if self.shooting_direction == 'left':
-                    self.image = self.left_frames[self.frame_index]
+                    self.image = self.left_frames[self.frame_index] # jika menembak ke kiri, pakai frame kiri
                 else:
-                    self.image = self.frames[self.frame_index]
+                    self.image = self.frames[self.frame_index] # jika menembak ke kanan, pakai frame biasa
             else:
                 if hasattr(self.player, 'facing') and self.player.facing == 'left':
-                    self.image = self.left_frames[self.frame_index]
+                    self.image = self.left_frames[self.frame_index] 
                 else:
                     self.image = self.frames[self.frame_index]
                 
     def get_shooting_position(self):
-        return self.rect.centerx, self.rect.centery
+        return self.rect.centerx, self.rect.centery # mengembalikan posisi pusat objek untuk tembakan
 
     def get_projectile_type(self):
         """Return the projectile type based on partner type"""
@@ -126,7 +130,7 @@ class Partner(pygame.sprite.Sprite):
     def change_type(self, new_type):
         """Change the partner type (e.g., from eagle to skull)"""
         if new_type == "skull" and self.partner_type != "skull":
-            self.partner_type = "skull"
+            self.partner_type = "skull" # mengganti tipe partner menjadi tengkorak
             
             # Update sprite images
             try:

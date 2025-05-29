@@ -11,28 +11,28 @@ SAVE_FILE = "game.dat"
 
 def save_game_data(money=0, highest_score=0, player_name=""):
     game_data = {
-        'money': money,
-        'highest_score': highest_score,
-        'player_name': player_name
+        'money': money, # menyimpan jumlah uang pemain
+        'highest_score': highest_score, # menyimpan skor tertinggi
+        'player_name': player_name # menyimpan nama pemain
     }
     with open(SAVE_FILE, 'wb') as file:
-        pickle.dump(game_data, file)
+        pickle.dump(game_data, file) # menyimpan dictionary game
 
 def load_game_data():
     try:
-        with open(SAVE_FILE, 'rb') as file:
+        with open(SAVE_FILE, 'rb') as file: # membuka file penyimpanan 
             game_data = pickle.load(file)
-            return (game_data['money'], 
+            return (game_data['money'],  # mengembalikan jumlah uang pemain
                    game_data['highest_score'],
-                   game_data.get('player_name', "")) 
+                   game_data.get('player_name', "")) # mengembalikan nama pemain
     except (FileNotFoundError, EOFError, KeyError):
         return 0, 0, "" 
 
 def create_themed_pause_menu(screen, title):
     """Buat themed menu untuk pause dengan gaya yang konsisten"""
-    theme = pygame_menu.themes.THEME_DARK.copy()
-    theme.widget_font = FONT_PATH
-    theme.title_font = FONT_PATH
+    theme = pygame_menu.themes.THEME_DARK.copy() # menyalin tema gelap
+    theme.widget_font = FONT_PATH # mengatur font untuk widget
+    theme.title_font = FONT_PATH # mengatur font untuk judul
     
     # Enhanced title styling
     theme.title_background_color = (20, 20, 30, 220)
@@ -79,9 +79,9 @@ def create_themed_pause_menu(screen, title):
 
 def pause_menu(screen, main_menu_callback=None):
     """Menu pause dengan tema yang diperbarui"""
-    from main import create_themed_menu, sound_manager
+    from main import create_themed_menu, sound_manager # mengimpor fungsi untuk membuat menu bertema dan manajer suara 
     
-    menu = create_themed_menu('GAME PAUSED', WIDTH, HEIGHT)
+    menu = create_themed_menu('GAME PAUSED', WIDTH, HEIGHT) # membuat menu dengan tema khusus 
     
     # Button styling
     button_style = {
@@ -101,12 +101,12 @@ def pause_menu(screen, main_menu_callback=None):
     
     # Tambahkan tombol dengan callback yang tidak segera ditutup
     def resume_game():
-        result[0] = False  # Kembali ke game
+        result[0] = False  # kembali ke game
         menu.disable()
         return
         
     def quit_to_menu():
-        result[0] = True  # Kembali ke menu utama
+        result[0] = True  # kembali ke menu utama
         menu.disable()
         return
     
@@ -116,17 +116,17 @@ def pause_menu(screen, main_menu_callback=None):
     
     # Set sound engine jika sound_manager tersedia
     if sound_manager:
-        class PauseMenuSound(pygame_menu.sound.Sound):
+        class PauseMenuSound(pygame_menu.sound.Sound): 
             def __init__(self):
                 super().__init__()
                 
             def play_click_sound(self):
-                sound_manager.play_ui_click()
+                sound_manager.play_ui_click() # memutar suara klik saat item menu diklik
                 
             def play_key_add_sound(self):
-                sound_manager.play_ui_hover()
+                sound_manager.play_ui_hover() # memutar suara hover saat navigasi item menu
                 
-        menu.set_sound(PauseMenuSound())
+        menu.set_sound(PauseMenuSound()) # menetapkan objek suara khusus ke menu pause
     
     # Semi-transparan blur effect untuk background
     bg_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
@@ -134,24 +134,24 @@ def pause_menu(screen, main_menu_callback=None):
     
     # Main loop untuk menu pause
     while menu.is_enabled():
-        events = pygame.event.get()
-        for event in events:
-            if event.type == pygame.QUIT:
+        events = pygame.event.get() # mengambil semua event pygame
+        for event in events: # memproses setiap event
+            if event.type == pygame.QUIT: # jika pengguna menutup jendela
                 return True  # Quit to main menu
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    menu.disable()
+                    menu.disable() # menonaktifkan menu pause
                     result[0] = False  # Tombol escape = resume game
         
         # Draw background
-        screen.blit(bg_surface, (0, 0))
+        screen.blit(bg_surface, (0, 0)) # menggambar latar belakang ke layar
         
         # Update dan gambar menu selama masih enabled
         menu.update(events)
         if menu.is_enabled():
             menu.draw(screen)
             
-        pygame.display.flip()
+        pygame.display.flip() # menampilkan semua perubahan grafis ke layar
     
     # Kembalikan hasil: True untuk keluar ke menu utama, False untuk melanjutkan game
     return result[0]
@@ -302,18 +302,18 @@ def show_victory_screen(screen, score, time_played, sound_manager=None, victory_
     
     # Set sound engine jika sound_manager tersedia
     if sound_manager:
-        class SoundEngine(pygame_menu.sound.Sound):
+        class SoundEngine(pygame_menu.sound.Sound): # membuat kelas turunan 
             def __init__(self, sound_manager):
-                super().__init__()
-                self.sound_manager = sound_manager
+                super().__init__() # memanggil konstruktor dari kelas induk
+                self.sound_manager = sound_manager # menyimpan referensi ke sound_manajer
                 
             def play_click_sound(self) -> None:
-                self.sound_manager.play_ui_click()
+                self.sound_manager.play_ui_click() # memutar suara klik saat item menu diklik
                 
             def play_key_add_sound(self) -> None:
                 self.sound_manager.play_ui_hover()
         
-        menu.set_sound(SoundEngine(sound_manager))
+        menu.set_sound(SoundEngine(sound_manager)) # menetapkan sistem suara 
         
         # Play victory sound
         sound_manager.play_victory_sound()
@@ -359,14 +359,14 @@ def show_victory_screen(screen, score, time_played, sound_manager=None, victory_
                 p['size']
             )
         
-        # Fade effect
+        # fade effect
         fade_surface.set_alpha(alpha)
         screen.blit(fade_surface, (0, 0))
         
         pygame.display.flip()
         pygame.time.delay(10)
     
-    # Main menu loop
+    # main menu loop
     while True:
         events = pygame.event.get()
         for event in events:
@@ -378,7 +378,7 @@ def show_victory_screen(screen, score, time_played, sound_manager=None, victory_
         bg_surface.fill((0, 0, 20, 160))
         screen.blit(bg_surface, (0, 0))
         
-        # Update dan gambar partikel
+        # update dan gambar partikel
         for p in particles:
             p['y'] -= p['speed']
             if p['y'] < -10:
