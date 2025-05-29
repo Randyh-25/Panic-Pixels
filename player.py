@@ -220,18 +220,22 @@ class Camera:
         self.viewport_rect = pygame.Rect(0, 0, WIDTH, HEIGHT)
     
     def update(self, player1, player2=None):
-        previous_split_mode = self.split_mode
-        
-        if player2 is None or player1.health <= 0 or player2.health <= 0:
-            # Solo mode atau satu player mati dalam split screen
-            target_player = player2 if player1.health <= 0 else player1
+        # Add check at the beginning of the method to prevent None errors
+        if player1 is None:
+            return
+            
+        # If only one player is provided, use single player camera mode
+        if player2 is None:
+            self.split_mode = False
+            target_player = player1
             self.x = -target_player.rect.centerx + WIDTH // 2
             self.y = -target_player.rect.centery + HEIGHT // 2
             self.x = min(0, max(-(self.map_width - WIDTH), self.x))
             self.y = min(0, max(-(self.map_height - HEIGHT), self.y))
-            self.split_mode = False
             return
-
+            
+        previous_split_mode = self.split_mode
+        
         # Calculate distance between players
         distance = math.hypot(
             player1.rect.centerx - player2.rect.centerx,

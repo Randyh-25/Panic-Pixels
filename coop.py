@@ -9,7 +9,7 @@ from projectile import Projectile
 from experience import Experience, LevelUpEffect
 from utils import pause_menu, splitscreen_game_over
 from maps import Map
-from ui import SplitScreenUI, render_text_with_border, InteractionButton, MiniMap
+from ui import HealthBar, MoneyDisplay, XPBar, SplitScreenUI, InteractionButton, render_text_with_border, SkillBar, MiniMap
 from settings import load_font
 from particles import ParticleSystem
 from partner import Partner
@@ -19,6 +19,7 @@ from devil import Devil
 from gollux_boss import Gollux  # Import Gollux boss class
 from bi_enemy import BiEnemy
 from bi_projectile import BiProjectile
+from skill import update_sound_manager
 
 def create_blur_surface(surface):
     scale = 0.25
@@ -128,6 +129,40 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
             label_rect = label_surface.get_rect(center=(px, py - 18))
             viewport_surface.blit(label_surface, label_rect)
 
+        # In the draw_game function, add special handling for fullscreen effects
+        # After drawing the map but before UI elements:
+
+        # First draw regular sprites with camera offset
+        for sprite in all_sprites:
+            if not hasattr(sprite, 'is_fullscreen_effect'):
+                # (Your existing sprite drawing code)
+                pass
+
+        # Draw fullscreen effects on the entire viewport
+        for sprite in all_sprites:
+            if hasattr(sprite, 'is_fullscreen_effect') and sprite.is_fullscreen_effect:
+                if hasattr(sprite, 'draw'):
+                    sprite.draw(viewport_surface)
+
+    # Define victory transition function
+    def victory_transition(surface):
+        fade_surface = pygame.Surface((WIDTH, HEIGHT))
+        fade_surface.fill((255, 255, 255))  # White flash for victory
+        
+        for alpha in range(0, 255, 5):
+            fade_surface.set_alpha(alpha)
+            screen.blit(fade_surface, (0, 0))
+            pygame.display.flip()
+            pygame.time.delay(10)
+        
+        pygame.time.delay(500)  # Hold the white screen briefly
+        
+        for alpha in range(255, 0, -5):
+            fade_surface.set_alpha(alpha)
+            screen.blit(fade_surface, (0, 0))
+            pygame.display.flip()
+            pygame.time.delay(10)
+
     # Continue with the rest of split_screen_main function
     all_sprites = pygame.sprite.Group()
     enemies = pygame.sprite.Group()
@@ -165,6 +200,14 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
     projectile_pool1 = []
     projectile_pool2 = []
     
+    # Initialize boss variables
+    boss = None
+    boss_spawn_time = 5*60*1000  # 5 minutes
+    boss_spawned = False
+    boss_defeated = False
+    show_boss_warning = False
+    boss_warning_timer = 0
+    
     for _ in range(MAX_PROJECTILES):
         for pool, group in [(projectile_pool1, projectiles1), (projectile_pool2, projectiles2)]:
             projectile = Projectile((0,0), (0,0))
@@ -195,7 +238,7 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
     
     # Tambahkan inisialisasi devil dan variabel terkait
     devil = None
-    devil_spawn_times = [4*60*1000]  # ms, menit ke-4
+    devil_spawn_times = [2*60*1000]  # ms, menit ke-4
     next_devil_time = devil_spawn_times[0]
     devil_notif_timer = 0
     devil_notif_show = False
@@ -218,15 +261,27 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
     mini_map1 = MiniMap(game_map.width, game_map.height, WIDTH, HEIGHT, player_id=1, position="left")
     mini_map2 = MiniMap(game_map.width, game_map.height, WIDTH, HEIGHT, player_id=2, position="right")
     
-    # Boss spawn variables
-    boss = None
-    boss_spawned = False
-    boss_warning_timer = 0
-    show_boss_warning = False
-    boss_spawn_time = 5 * 60 * 1000  # 5 minutes
+    # Initialize skill bars for both players - each with one skill in coop mode
+    skill_bar1 = SkillBar(player_id=1, position="left", mode="coop")
+    skill_bar1.player = player1  # Add player1 reference
+    skill_bar2 = SkillBar(player_id=2, position="right", mode="coop")
+    skill_bar2.player = player2  # Add player2 reference
+    
+    # Create a new sprite group for skill effects
+    skill_effects = pygame.sprite.Group()
+
+    # Update sound manager at the beginning
+    update_sound_manager(sound_manager)
+
+    # Add a variable to track if enemy spawns should be blocked
+    nuke_blocking_spawns = False
 
     while running:
         dt = clock.tick(FPS) / 1000.0
+        
+        # Update skill cooldowns
+        skill_bar1.update(dt)
+        skill_bar2.update(dt)
         
         # Collect events before processing to pass to shop
         current_events = []
@@ -235,6 +290,38 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
+                # Player 1 skill activation (key 1 only)
+                if event.key == pygame.K_1 and player1.health > 0:
+                    skill = skill_bar1.activate_skill()
+                    if skill:
+                        if skill.name == "Heal":
+                            effect = skill.activate(player1, enemies=enemies)
+                        elif skill.name == "Nuke":
+                            effect = skill.activate(player1, enemies=enemies)
+                            if effect:
+                                nuke_blocking_spawns = True  # Block enemy spawns
+                        else:
+                            effect = skill.activate(player1.rect.center, enemies=enemies)
+                        if effect:
+                            all_sprites.add(effect)
+                            skill_effects.add(effect)
+
+                # Player 2 skill activation (right Ctrl instead of numpad 1)
+                elif event.key == pygame.K_RCTRL and player2.health > 0:  # Changed from K_KP1 to K_RCTRL
+                    skill = skill_bar2.activate_skill()
+                    if skill:
+                        if skill.name == "Heal":
+                            effect = skill.activate(player2, enemies=enemies)
+                        elif skill.name == "Nuke":
+                            effect = skill.activate(player2, enemies=enemies)
+                            if effect:
+                                nuke_blocking_spawns = True  # Block enemy spawns
+                        else:
+                            effect = skill.activate(player2.rect.center, enemies=enemies)
+                        if effect:
+                            all_sprites.add(effect)
+                            skill_effects.add(effect)
+                    
                 if event.key == pygame.K_ESCAPE:
                     if devil_shop.is_open:
                         devil_shop.close()
@@ -363,6 +450,7 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                                 else:
                                     boss = Gollux(game_map.width, game_map.height, player2.rect.center)
                                     
+                                boss.sound_manager = sound_manager  # Set sound manager reference
                                 all_sprites.add(boss)
                                 boss_spawned = True
                                 cheat_message = "Gollux boss spawned!"
@@ -379,17 +467,26 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
             # Continue to next frame, skipping regular game updates
             continue
 
+        # Spawn enemies
         enemy_spawn_timer += 1
         MAX_ENEMIES = 15
         # Only spawn enemies if boss isn't spawned yet
         if enemy_spawn_timer >= 60 and len(enemies) < MAX_ENEMIES and not boss_spawned:
-            enemy = Enemy((
-                (player1.rect.centerx + player2.rect.centerx) // 2,
-                (player1.rect.centery + player2.rect.centery) // 2
-            ))
-            all_sprites.add(enemy)
-            enemies.add(enemy)
-            enemy_spawn_timer = 0
+            # Add check for nuke blocking
+            spawn_blocked = False
+            for effect in skill_effects:
+                if hasattr(effect, 'block_enemy_spawns') and effect.block_enemy_spawns:
+                    spawn_blocked = True
+                    break
+    
+            if not spawn_blocked:
+                enemy = Enemy((
+                    (player1.rect.centerx + player2.rect.centerx) // 2,
+                    (player1.rect.centery + player2.rect.centery) // 2
+                ))
+                all_sprites.add(enemy)
+                enemies.add(enemy)
+                enemy_spawn_timer = 0
             
         # Also fix partner shooting in split screen mode
         projectile_timer += 1
@@ -598,7 +695,7 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                     transition_timer += 1
                     if transition_timer >= TRANSITION_DELAY:
                         # Show game over
-                        splitscreen_game_over(screen, player1, player2, main_menu_callback)
+                        splitscreen_game_over(screen, player1, player2, main_menu_callback, split_screen_main)
                         return
 
         # Handle experience collection
@@ -627,7 +724,12 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
         # Update camera to follow midpoint between players
         if player1.health <= 0:
             # Player 1 mati, kamera ikuti player 2
-            camera.update(player2)
+            if player2 is not None and hasattr(player2, 'rect'):
+                camera.update(player2)
+            else:
+                # Fallback to player1 if available, or do nothing
+                if player1 is not None and hasattr(player1, 'rect'):
+                    camera.update(player1)
         elif player2.health <= 0:
             # Player 2 mati, kamera ikuti player 1
             camera.update(player1)
@@ -653,7 +755,7 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
             left_viewport = pygame.Rect(0, 0, WIDTH//2 - divider_width//2, HEIGHT)
             draw_game(left_viewport, 0, 1)  # Draw with player 1 filter
             
-            # Draw right viewport (Player 2)
+            # Right viewport (Player 2)
             right_viewport = pygame.Rect(WIDTH//2 + divider_width//2, 0, WIDTH//2 - divider_width//2, HEIGHT)
             draw_game(right_viewport, WIDTH//2, 2)  # Draw with player 2 filter
             
@@ -676,8 +778,8 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
         timer_surface = render_text_with_border(timer_font, timer_text, WHITE, BLACK)
         timer_rect = timer_surface.get_rect(center=(WIDTH // 2, 40))
         screen.blit(timer_surface, timer_rect)
-        # --- END SESSION TIMER ---
 
+        # Check for devil spawn
         now = pygame.time.get_ticks()
         if devil is None and now >= next_devil_time:
             devil = Devil(game_map.width, game_map.height)
@@ -686,11 +788,12 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
             devil_notif_show = True
             # Jadwalkan spawn berikutnya
             if len(devil_spawn_times) == 1:
-                devil_spawn_times.append(next_devil_time + 5*60*1000)
+                devil_spawn_times.append(next_devil_time + 2*60*1000)
             else:
-                devil_spawn_times.append(devil_spawn_times[-1] + 5*60*1000)
+                devil_spawn_times.append(devil_spawn_times[-1] + 2*60*1000)
             next_devil_time = devil_spawn_times[-1]
 
+        # Update devil if it exists
         if devil:
             # Update using the correct player
             if player1.health <= 0:
@@ -804,229 +907,85 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
             if interaction_button2.is_visible:  
                 interaction_button2.draw(screen, (camera.x, camera.y))
                 
-        # Draw minimaps
+        # Update minimaps and skill positions based on split screen mode
         mini_map1.adjust_for_split_screen(camera.split_mode, WIDTH//2)
         mini_map2.adjust_for_split_screen(camera.split_mode, WIDTH//2)
-        mini_map1.draw(screen, player1, player2, enemies, devil, boss)
-        mini_map2.draw(screen, player2, player1, enemies, devil, boss)
-                
-        # --- BOSS WARNING NOTIFICATION ---
-        if show_boss_warning:
-            # Draw semi-transparent background
-            warning_bg = pygame.Surface((WIDTH, HEIGHT))
-            warning_bg.fill((0, 0, 0, 180))  # Black with transparency
-            screen.blit(warning_bg, (0, 0))
+        skill_bar1.adjust_position(camera.split_mode, WIDTH)
+        skill_bar2.adjust_position(camera.split_mode, WIDTH)
+        
+        # Draw UI elements
+        if camera.split_mode:
+            # For split screen mode
+            # Left half (player 1)
+            left_viewport = pygame.Rect(0, 0, WIDTH//2 - divider_width//2, HEIGHT)
+            mini_map1.draw(screen, player1, player2, enemies, devil, boss)
+            skill_bar1.draw(screen)
             
-            # Draw warning text
-            warning_font = load_font(48)
-            warning_text = "A powerful enemy has appeared!"
-            warning_surface = warning_font.render(warning_text, True, (255, 0, 0))
-            warning_rect = warning_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
-            screen.blit(warning_surface, warning_rect)
-            
-            # Draw countdown timer
-            remaining_time = (boss_spawn_time - (now - boss_warning_timer)) // 1000
-            countdown_text = f"Boss spawns in: {remaining_time}"
-            countdown_surface = warning_font.render(countdown_text, True, (255, 255, 0))
-            countdown_rect = countdown_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 10))
-            screen.blit(countdown_surface, countdown_rect)
-            
-            # Hide warning after 5 seconds
-            if now - boss_warning_timer >= 5000:
-                show_boss_warning = False
-        # --- END BOSS WARNING NOTIFICATION ---
-                
-        # Boss spawn section - normal
-        if not boss_spawned and elapsed_ms >= boss_spawn_time:
-            # In co-op, spawn near the midpoint between two players if both alive
+            # Right half (player 2)
+            right_viewport = pygame.Rect(WIDTH//2 + divider_width//2, 0, WIDTH//2 - divider_width//2, HEIGHT)
+            mini_map2.draw(screen, player2, player1, enemies, devil, boss)
+            skill_bar2.draw(screen)
+        else:
+            # Single screen mode
+            mini_map1.draw(screen, player1, player2, enemies, devil, boss)
+            mini_map2.draw(screen, player2, player1, enemies, devil, boss)
+            skill_bar1.draw(screen)
+            if player2.health > 0:
+                skill_bar2.draw(screen)
+        
+        # --- SESSION TIMER ---
+        elapsed_ms = pygame.time.get_ticks() - session_start_ticks - pause_ticks
+        elapsed_seconds = elapsed_ms // 1000
+        minutes = elapsed_seconds // 60
+        seconds = elapsed_seconds % 60
+        timer_text = f"{minutes:02d}:{seconds:02d}"
+
+        timer_font = load_font(48)
+        timer_surface = render_text_with_border(timer_font, timer_text, WHITE, BLACK)
+        timer_rect = timer_surface.get_rect(center=(WIDTH // 2, 40))
+        screen.blit(timer_surface, timer_rect)
+
+        # Check if boss should spawn based on elapsed time
+        elapsed_time = pygame.time.get_ticks() - session_start_ticks - pause_ticks - cheat_pause_ticks
+        if not boss_spawned and not boss_defeated and elapsed_time >= boss_spawn_time:
+            # Create midpoint between active players
             if player1.health > 0 and player2.health > 0:
                 midpoint = ((player1.rect.centerx + player2.rect.centerx) // 2, 
                            (player1.rect.centery + player2.rect.centery) // 2)
-                boss = Gollux(game_map.width, game_map.height, midpoint)
             elif player1.health > 0:
-                boss = Gollux(game_map.width, game_map.height, player1.rect.center)
+                midpoint = player1.rect.center
             else:
-                boss = Gollux(game_map.width, game_map.height, player2.rect.center)
+                midpoint = player2.rect.center
                 
-            boss.sound_manager = sound_manager  # Set sound manager reference
+            # Create and setup boss
+            boss = Gollux(game_map.width, game_map.height, midpoint)
+            boss.sound_manager = sound_manager
             all_sprites.add(boss)
             boss_spawned = True
             
             # Show boss warning
             boss_warning_timer = pygame.time.get_ticks()
             show_boss_warning = True
-
-        # Cheat section for boss spawn
-        elif cheat_input == "spawnboss":
-            if boss is None:
-                # Spawn near active players
-                if player1.health > 0 and player2.health > 0:
-                    midpoint = ((player1.rect.centerx + player2.rect.centerx) // 2, 
-                               (player1.rect.centery + player2.rect.centery) // 2)
-                    boss = Gollux(game_map.width, game_map.height, midpoint)
-                elif player1.health > 0:
-                    boss = Gollux(game_map.width, game_map.height, player1.rect.center)
-                else:
-                    boss = Gollux(game_map.width, game_map.height, player2.rect.center)
+            
+        # Display boss warning if active
+        if show_boss_warning:
+            current_time = pygame.time.get_ticks()
+            elapsed_time = current_time - boss_warning_timer
+            
+            if elapsed_time < 3000:  # Show for 3 seconds
+                warning_font = load_font(48)
+                warning_text = warning_font.render("BOSS APPROACHING!", True, (255, 0, 0))
+                warning_rect = warning_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
                 
-                boss.sound_manager = sound_manager  # Set sound manager reference
-                all_sprites.add(boss)
-                boss_spawned = True
-                cheat_message = "Gollux boss spawned!"
+                # Add pulsing effect
+                pulse = math.sin(current_time * 0.01) * 10 + 255
+                pulse = max(0, min(255, pulse))
+                warning_text.set_alpha(pulse)
+                
+                screen.blit(warning_text, warning_rect)
             else:
-                cheat_message = "Boss sudah ada!"
-
-        # --- BI ENEMY SPAWNING LOGIC ---
-        game_time_seconds = (pygame.time.get_ticks() - session_start_ticks - pause_ticks) // 1000
-        if game_time_seconds > last_second:
-            bi_spawn_timer += 1  # Increment every second
+                show_boss_warning = False
             
-            # Spawn BiEnemies every 10 seconds
-            if bi_spawn_timer >= 10:
-                # Spawn 2 BiEnemies for variety
-                for _ in range(2):
-                    bi_enemy = BiEnemy((
-                        random.randint(0, game_map.width),
-                        random.randint(0, game_map.height)
-                    ))
-                    all_sprites.add(bi_enemy)
-                    bi_enemies.add(bi_enemy)
-                
-                bi_spawn_timer = 0  # Reset timer
-
-        # Update and draw BiEnemies
-        bi_enemies.update()
-        
-        # Handle BiProjectile hits
-        for proj in bi_projectiles:
-            # Check collision with players
-            if proj.alive():
-                hits = pygame.sprite.spritecollide(proj, [player1, player2], False)
-                for player in hits:
-                    if player.health > 0:  # Only affect alive players
-                        player.health -= proj.damage
-                        proj.kill()  # Destroy projectile on hit
-                        break  # Exit after first hit (one projectile per player)
-        
-        # Draw BiProjectiles
-        for proj in bi_projectiles:
-            if proj.alive():
-                proj.draw(screen)
-        
-        # --- END BI ENEMY LOGIC ---
-
-        # Track game time
-        current_second = pygame.time.get_ticks() // 1000
-        if current_second > last_second:
-            game_time_seconds = current_second
-            last_second = current_second
-
-        # Spawn Bi enemies after 1 minute (60 seconds) with a slower spawn rate
-        if game_time_seconds >= 60:  # Only spawn Bi after 1 minute
-            bi_spawn_timer += 1
-            if bi_spawn_timer >= 200 and len(bi_enemies) < 5:  # Slower spawn rate, max 5 Bi enemies
-                # Choose which player to spawn near
-                target_player = random.choice([player1, player2])
-                if target_player.health > 0:  # Only spawn if player is alive
-                    bi_enemy = BiEnemy(target_player.rect.center)
-                    all_sprites.add(bi_enemy)
-                    enemies.add(bi_enemy)  # Add to regular enemies group for collisions
-                    bi_enemies.add(bi_enemy)  # Also add to bi_enemies group for specialized updates
-                    bi_spawn_timer = 0
-
-        # Update Bi enemies and handle their projectiles
-        for bi in bi_enemies:
-            target, damage = bi.update(random.choice([player1, player2]) if player1.health > 0 and player2.health > 0 else 
-                                  player1 if player1.health > 0 else player2, enemies)
-            
-            # If Bi needs to create a projectile
-            if target and damage > 0:
-                # Create a new sting projectile
-                start_pos = bi.rect.center
-                target_pos = target.rect.center
-                
-                sting = BiProjectile(start_pos, target_pos, bi.sting_image)
-                all_sprites.add(sting)
-                bi_projectiles.add(sting)
-
-        # Update Bi projectiles
-        bi_projectiles.update()
-
-        # Check for Bi projectiles hitting players
-        for player in [player1, player2]:
-            if player.health <= 0:
-                continue
-                
-            hits = pygame.sprite.spritecollide(player, bi_projectiles, True)
-            for projectile in hits:
-                player.health -= projectile.damage
-                # Optional: Add hit effect here
-                
-                if player.health <= 0:
-                    player.start_death_animation()
-                    if not death_transition:
-                        death_transition = True
-                        blur_surface = create_blur_surface(screen.copy())
-
         pygame.display.flip()
 
     return
-
-# Tambahkan fungsi transisi kemenangan
-def victory_transition(surface):
-    """Animasi transisi saat mengalahkan boss"""
-    # White flash effect
-    flash_surface = pygame.Surface((WIDTH, HEIGHT))
-    flash_surface.fill((255, 255, 255))
-    
-    # Efek flash putih dengan fade out
-    for alpha in range(255, 0, -5):
-        surface_copy = surface.copy()
-        flash_surface.set_alpha(alpha)
-        surface_copy.blit(flash_surface, (0, 0))
-        pygame.display.flip()
-        pygame.time.delay(5)
-    
-    # Efek partikel emas
-    gold_particles = []
-    for _ in range(200):
-        gold_particles.append({
-            'x': random.randint(0, WIDTH),
-            'y': random.randint(HEIGHT//2, HEIGHT*2),  # Start from bottom half
-            'size': random.randint(2, 8),
-            'speed': random.uniform(2, 6),
-            'color': (
-                random.randint(200, 255),  # Red
-                random.randint(180, 220),  # Green
-                random.randint(0, 100)     # Blue - Low for gold color
-            )
-        })
-    
-    # Animasikan partikel selama 1.5 detik
-    start_time = pygame.time.get_ticks()
-    while pygame.time.get_ticks() - start_time < 1500:
-        surface_copy = surface.copy()
-        
-        # Update dan gambar partikel
-        for p in gold_particles:
-            p['y'] -= p['speed']
-            pygame.draw.circle(
-                surface_copy,
-                p['color'],
-                (int(p['x']), int(p['y'])),
-                p['size']
-            )
-        
-        pygame.display.flip()
-        pygame.time.delay(16)  # ~60fps
-
-# Contoh di solo.py atau coop.py
-def handle_pause():
-    quit_to_menu = pause_menu(screen, sound_manager)
-    if quit_to_menu:
-        # Kembali ke menu utama
-        return True
-    else:
-        # Lanjutkan game
-        return False
-

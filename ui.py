@@ -239,7 +239,9 @@ class DevilShop:
         ]
         
         self.skill_items = [
-            {"name": "Coming soon...", "price": 0, "desc": "Partner skills will be available soon"}
+            {"name": "Thunder Strike", "price": 500, "desc": "Call lightning from the sky to damage enemies"},
+            {"name": "Heal", "price": 750, "desc": "Restore health to full"},
+            {"name": "Nuke", "price": 1000, "desc": "Eliminate all enemies but costs 50% of your health"}
         ]
         
         self.partner_items = [
@@ -370,26 +372,137 @@ class DevilShop:
                 purchased = True
                 
         elif self.current_tab == 1:  # Skills tab
-            # Skills will be implemented later
-            self.message = "Skills will be available soon!"
-            return False
-            
+            if item["name"] == "Thunder Strike":
+                # Initialize skills list if it doesn't exist
+                if not hasattr(player, 'skills'):
+                    player.skills = []
+                
+                # Check if player already has this skill
+                already_has_skill = False
+                for skill in player.skills:
+                    if skill.name == "Thunder Strike":
+                        already_has_skill = True
+                        break
+                        
+                if already_has_skill:
+                    self.message = f"You already have {item['name']}!"
+                    self.message_timer = 0
+                    if self.sound_manager:
+                        self.sound_manager.play_ui_hover()  # Use hover sound for error
+                    return False
+                
+                # If player doesn't have the skill yet, check if all skill slots are filled (solo mode)
+                # Solo mode has 3 skill slots max
+                if hasattr(player, 'player_id') and player.player_id == 1 and len(player.skills) >= 3:
+                    self.message = "All skill slots are full!"
+                    self.message_timer = 0
+                    if self.sound_manager:
+                        self.sound_manager.play_ui_hover()
+                    return False
+                
+                # Import the skill module and create the skill
+                from skill import create_skill
+                thunder_skill = create_skill("thunder_strike", self.sound_manager)
+                
+                # Add to player's skills
+                player.skills.append(thunder_skill)
+                purchased = True
+            elif item["name"] == "Heal":
+                # Initialize skills list if it doesn't exist
+                if not hasattr(player, 'skills'):
+                    player.skills = []
+                
+                # Check if player already has this skill
+                already_has_skill = False
+                for skill in player.skills:
+                    if skill.name == "Heal":
+                        already_has_skill = True
+                        break
+                
+                if already_has_skill:
+                    self.message = f"You already have {item['name']}!"
+                    self.message_timer = 0
+                    if self.sound_manager:
+                        self.sound_manager.play_ui_hover()  # Use hover sound for error
+                    return False
+                
+                # If player doesn't have the skill yet, check if all skill slots are filled (solo mode)
+                # Solo mode has 3 skill slots max
+                if hasattr(player, 'player_id') and player.player_id == 1 and len(player.skills) >= 3:
+                    self.message = "All skill slots are full!"
+                    self.message_timer = 0
+                    if self.sound_manager:
+                        self.sound_manager.play_ui_hover()
+                    return False
+                
+                # Import the skill module and create the skill
+                from skill import create_skill
+                heal_skill = create_skill("heal", self.sound_manager)
+                
+                # Add to player's skills
+                player.skills.append(heal_skill)
+                purchased = True
+            elif item["name"] == "Nuke":
+                # Initialize skills list if it doesn't exist
+                if not hasattr(player, 'skills'):
+                    player.skills = []
+                
+                # Check if player already has this skill
+                already_has_skill = False
+                for skill in player.skills:
+                    if skill.name == "Nuke":
+                        already_has_skill = True
+                        break
+                
+                if already_has_skill:
+                    self.message = f"You already have {item['name']}!"
+                    self.message_timer = 0
+                    if self.sound_manager:
+                        self.sound_manager.play_ui_hover()  # Use hover sound for error
+                    return False
+                
+                # If player doesn't have the skill yet, check if all skill slots are filled (solo mode)
+                # Solo mode has 3 skill slots max
+                if hasattr(player, 'player_id') and player.player_id == 1 and len(player.skills) >= 3:
+                    self.message = "All skill slots are full!"
+                    self.message_timer = 0
+                    if self.sound_manager:
+                        self.sound_manager.play_ui_hover()
+                    return False
+                
+                # Import the skill module and create the skill
+                from skill import create_skill
+                nuke_skill = create_skill("nuke", self.sound_manager)
+                
+                # Add to player's skills
+                player.skills.append(nuke_skill)
+                purchased = True
+        
         elif self.current_tab == 2:  # Partner tab
             if item["name"] == "Skull Partner" and partner:
                 # Change partner type from eagle to skull
                 partner.change_type("skull")
                 purchased = True
-        
-        # If purchase was successful
+            elif item["name"] == "Eagle Partner" and partner:
+                # Change partner type from skull to eagle
+                partner.change_type("eagle")
+                purchased = True
+            # Add more partner items as needed
+    
+        # If item was purchased successfully
         if purchased:
+            # Deduct money
             player.session_money -= item["price"]
+            
+            # Display success message
             self.message = f"Purchased {item['name']}!"
             self.message_timer = 0
-            if self.sound_manager:
-                self.sound_manager.play_ui_click()
-            return True
             
-        return False
+            # Play purchase sound
+            if self.sound_manager:
+                self.sound_manager.play_gold_sound()
+                
+        return purchased
 
     def draw(self, surface):
         if not self.is_open:
@@ -611,3 +724,227 @@ class MiniMap:
             else:
                 self.x = self.screen_width - self.width - self.padding
                 self.y = self.screen_height - self.height - 50
+
+class SkillBar:
+    def __init__(self, player_id=1, position="left", mode="solo"):
+        # Load skill UI resources
+        self.skill_border = pygame.image.load("assets/UI/skill/skillborder.png").convert_alpha()
+        self.skill_empty = pygame.image.load("assets/UI/skill/skillempty.png").convert_alpha()
+        
+        # Set dimensions for skill slot
+        self.slot_size = 64
+        self.skill_border = pygame.transform.scale(self.skill_border, (self.slot_size, self.slot_size))
+        self.skill_empty = pygame.transform.scale(self.skill_empty, (self.slot_size, self.slot_size))
+        
+        # Player identification and positioning
+        self.player_id = player_id  # 1 for player 1, 2 for player 2
+        self.position = position    # "left" or "right"
+        self.mode = mode            # "solo" or "coop"
+        
+        # Position calculation - will be set based on adjustments
+        self.x = 0
+        self.y = HEIGHT - 120  # Default vertical position above XP bar
+        
+        # Add font initialization here
+        self.font = load_font(20)  # Add this line to initialize the font
+        
+        # In solo mode, use 3 skill slots
+        if self.mode == "solo":
+            self.skills = [None, None, None]
+            self.cooldowns = [0, 0, 0]
+            self.last_activation_time = [0, 0, 0]
+            self.activation_effect = [0, 0, 0]
+            self.key_labels = ["1", "2", "3"]
+        # In coop mode, use 1 skill slot
+        else:
+            self.skill = None
+            self.cooldown = 0
+            self.last_activation_time = 0
+            self.activation_effect = 0
+            # Update the key label for Player 2
+            self.key_label = "1" if player_id == 1 else "CTRL"  # Changed from "1" to "CTRL" for Player 2
+        
+        # Max cooldown time
+        self.max_cooldown = 5.0  # 5 seconds cooldown by default
+        
+        # Set the initial position
+        self.adjust_position()
+        
+    def adjust_position(self, is_split_screen=False, screen_width=WIDTH):
+        """Position the skill slots appropriately"""
+        padding = 10
+        
+        if self.mode == "solo":
+            # Center the 3 skills in solo mode above the XP bar
+            total_width = (self.slot_size * 3) + (padding * 2)
+            start_x = (WIDTH - total_width) // 2
+            self.start_x = start_x
+            self.y = HEIGHT - 120  # Position above XP bar
+        else:
+            # In coop mode, position next to minimap
+            minimap_size = 150  # Same as MiniMap width
+            
+            if is_split_screen:
+                # In split-screen, position next to minimap in respective viewport
+                if self.player_id == 1:
+                    # Player 1 (left side): Position to the right of the minimap
+                    self.x = minimap_size + padding * 2
+                    self.y = HEIGHT - minimap_size // 2 - self.slot_size // 2 - 50
+                else:
+                    # Player 2 (right side): Position to the right of the minimap
+                    self.x = screen_width // 2 + minimap_size + padding * 2
+                    self.y = HEIGHT - minimap_size // 2 - self.slot_size // 2 - 50
+            else:
+                # In regular mode, position both skills next to their respective minimaps
+                if self.player_id == 1:
+                    # Player 1: To the right of left minimap
+                    self.x = minimap_size + padding * 2
+                    self.y = HEIGHT - minimap_size // 2 - self.slot_size // 2 - 50
+                else:
+                    # Player 2: To the left of right minimap
+                    self.x = WIDTH - minimap_size - padding * 2 - self.slot_size
+                    self.y = HEIGHT - minimap_size // 2 - self.slot_size // 2 - 50
+        
+    def draw(self, screen):
+        current_time = pygame.time.get_ticks() / 1000  # Convert to seconds
+        
+        # Different drawing logic for solo vs coop
+        if self.mode == "solo":
+            # Draw three skill slots for solo mode
+            for i in range(3):
+                x = self.start_x + (i * (self.slot_size + 10))
+                
+                # Draw empty skill background
+                screen.blit(self.skill_empty, (x, self.y))
+                
+                # If there's a skill in this slot, draw it over the empty slot
+                if hasattr(self.player, 'skills') and i < len(self.player.skills):
+                    skill_icon = self.player.skills[i].get_icon()
+                    if skill_icon:
+                        # Scale icon to fit the slot
+                        scaled_icon = pygame.transform.scale(skill_icon, (self.slot_size, self.slot_size))
+                        screen.blit(scaled_icon, (x, self.y))
+                
+                # Draw cooldown overlay if skill is on cooldown
+                if self.cooldowns[i] > 0:
+                    # Calculate remaining cooldown percentage
+                    elapsed = current_time - self.last_activation_time[i]
+                    remaining_pct = max(0, min(1, 1 - (elapsed / self.max_cooldown)))
+                    
+                    if remaining_pct > 0:
+                        # Create a semi-transparent overlay
+                        overlay = pygame.Surface((self.slot_size, self.slot_size * remaining_pct), pygame.SRCALPHA)
+                        overlay.fill((0, 0, 0, 150))  # Semi-transparent black
+                        screen.blit(overlay, (x, self.y + self.slot_size * (1 - remaining_pct)))
+                
+                # Draw key label
+                key_text = self.font.render(self.key_labels[i], True, (255, 255, 255))
+                key_rect = key_text.get_rect(bottomright=(x + self.slot_size - 5, self.y + self.slot_size - 5))
+                screen.blit(key_text, key_rect)
+        else:
+            # Draw single skill slot for coop mode
+            # Draw empty skill background
+            screen.blit(self.skill_empty, (self.x, self.y))
+            
+            # If there's a skill in this slot, draw it here (implement later)
+            # if self.skill:
+            #     screen.blit(self.skill["icon"], (self.x, self.y))
+            
+            # Draw cooldown overlay if skill is on cooldown
+            if self.cooldown > 0:
+                # Calculate remaining cooldown percentage
+                elapsed = current_time - self.last_activation_time
+                remaining_pct = max(0, min(1, 1 - (elapsed / self.max_cooldown)))
+                
+                if remaining_pct > 0:
+                    # Create a semi-transparent overlay
+                    overlay = pygame.Surface((self.slot_size, self.slot_size), pygame.SRCALPHA)
+                    overlay_height = int(self.slot_size * remaining_pct)
+                    overlay.fill((0, 0, 0, 180), (0, self.slot_size - overlay_height, self.slot_size, overlay_height))
+                    screen.blit(overlay, (self.x, self.y))
+                    
+                    # Show cooldown number
+                    cooldown_text = str(math.ceil(self.max_cooldown - elapsed))
+                    text_surf = self.font.render(cooldown_text, True, (255, 255, 255))
+                    text_rect = text_surf.get_rect(center=(self.x + self.slot_size//2, self.y + self.slot_size//2))
+                    screen.blit(text_surf, text_rect)
+                else:
+                    self.cooldown = 0
+            
+            # Draw activation effect if recently activated
+            if self.activation_effect > 0:
+                # Calculate effect progress (0-1)
+                elapsed = current_time - self.last_activation_time - self.cooldown
+                effect_progress = max(0, min(1, elapsed / self.effect_duration))
+                self.activation_effect = 1 - effect_progress
+                
+                if self.activation_effect > 0:
+                    # Draw pulsing glow effect
+                    glow_size = int(self.slot_size * (1 + 0.2 * self.activation_effect))
+                    glow_offset = (glow_size - self.slot_size) // 2
+                    
+                    glow_surf = pygame.Surface((glow_size, glow_size), pygame.SRCALPHA)
+                    alpha = int(120 * self.activation_effect)
+                    color = (0, 255, 0, alpha) if self.player_id == 1 else (255, 255, 0, alpha)
+                    pygame.draw.rect(glow_surf, color, 
+                                    (0, 0, glow_size, glow_size), 
+                                    border_radius=8)
+                    
+                    screen.blit(glow_surf, (self.x - glow_offset, self.y - glow_offset))
+                else:
+                    self.activation_effect = 0
+            
+            # Always draw the border
+            screen.blit(self.skill_border, (self.x, self.y))
+            
+            # Draw keybind indicator
+            key_text = render_text_with_border(self.font, self.key_label, WHITE, BLACK)
+            text_x = self.x + 5
+            text_y = self.y + self.slot_size - 20
+            screen.blit(key_text, (text_x, text_y))
+            
+    def activate_skill(self, index=0):
+        """Activate a skill - for solo mode index matters, for coop it's ignored"""
+        if self.mode == "solo":
+            # Check if the index is valid, skill exists, and not on cooldown
+            if (0 <= index < 3 and not self.cooldowns[index] and 
+                hasattr(self.player, 'skills') and index < len(self.player.skills)):
+                
+                skill = self.player.skills[index]
+                # Start cooldown
+                current_time = pygame.time.get_ticks() / 1000
+                self.last_activation_time[index] = current_time
+                self.cooldowns[index] = skill.cooldown  # Use skill's actual cooldown
+                self.activation_effect[index] = 1.0
+                
+                # Return the skill for activation
+                return skill
+            return None
+        else:
+            # In coop mode, use the first skill if available and not on cooldown
+            if not self.cooldown and hasattr(self.player, 'skills') and len(self.player.skills) > 0:
+                skill = self.player.skills[0]
+                current_time = pygame.time.get_ticks() / 1000
+                self.last_activation_time = current_time
+                self.cooldown = skill.cooldown
+                self.activation_effect = 1.0
+                
+                # Return the skill for activation
+                return skill
+            return None
+        
+    def update(self, dt):
+        # Update cooldowns
+        current_time = pygame.time.get_ticks() / 1000
+        
+        if self.mode == "solo":
+            for i in range(3):
+                if self.cooldowns[i] > 0:
+                    elapsed = current_time - self.last_activation_time[i]
+                    if elapsed >= self.max_cooldown:
+                        self.cooldowns[i] = 0
+        else:
+            if self.cooldown > 0:
+                elapsed = current_time - self.last_activation_time
+                if elapsed >= self.max_cooldown:
+                    self.cooldown = 0

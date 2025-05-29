@@ -293,31 +293,33 @@ class BiEnemy(pygame.sprite.Sprite):
         return None, 0
 
     def draw(self, surface, camera_offset):
-        if self.shadow_img is not None:
-            shadow = self.shadow_img.copy()
-            if getattr(self, "fading_out", False):
-                shadow.set_alpha(self.fade_alpha)
-            shadow_rect = shadow.get_rect(center=(self.rect.centerx + camera_offset[0], self.rect.bottom + camera_offset[1] - self.shadow_img.get_height()//2 + self.shadow_offset_y))
-            surface.blit(shadow, shadow_rect)
-
         # Check if we're dying or dead
         if self.is_dying:
-            # Draw shadow first (even when dying)
-            self.draw_shadow(surface, camera_offset)
-            
-            # Then draw the enemy
+            # Only draw the enemy here, shadow is handled separately by draw_shadow
             x = self.rect.x + camera_offset[0]
             y = self.rect.y + camera_offset[1]
             surface.blit(self.image, (x, y))
             return
         
-        # Then draw the enemy
+        # Draw the enemy
         x = self.rect.x + camera_offset[0]
         y = self.rect.y + camera_offset[1]
         surface.blit(self.image, (x, y))
 
     def draw_shadow(self, surface, camera_offset):
-        if self.shadow_img:
+        """Draw shadow below the enemy"""
+        if hasattr(self, 'shadow_img') and self.shadow_img is not None:
+            # Position the shadow at the BOTTOM of the sprite, not the top
             shadow_x = self.rect.centerx - self.shadow_img.get_width() // 2 + camera_offset[0]
-            shadow_y = self.rect.bottom - self.shadow_img.get_height() // 2 + self.shadow_offset_y + camera_offset[1]
-            surface.blit(self.shadow_img, (shadow_x, shadow_y))
+            shadow_y = self.rect.bottom + camera_offset[1]
+            
+            # Optionally fine-tune the shadow position with these offsets
+            shadow_offset_x = 0  # Adjust horizontally if needed
+            shadow_offset_y = 20  # Place shadow slightly below feet
+            
+            # Apply any fading effect if the enemy is fading out
+            shadow = self.shadow_img.copy()
+            if hasattr(self, "fading_out") and self.fading_out:
+                shadow.set_alpha(getattr(self, "fade_alpha", 255))
+            
+            surface.blit(shadow, (shadow_x + shadow_offset_x, shadow_y + shadow_offset_y))

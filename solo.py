@@ -9,7 +9,7 @@ from projectile import Projectile
 from experience import Experience, LevelUpEffect
 from utils import pause_menu, highest_score_menu, load_game_data, save_game_data, show_victory_screen
 from maps import Map
-from ui import HealthBar, MoneyDisplay, XPBar, InteractionButton, render_text_with_border
+from ui import HealthBar, MoneyDisplay, XPBar, InteractionButton, render_text_with_border, SkillBar
 from settings import load_font
 from particles import ParticleSystem
 from partner import Partner
@@ -19,6 +19,7 @@ from ui import MiniMap
 from gollux_boss import Gollux
 from bi_enemy import BiEnemy
 from bi_projectile import BiProjectile
+from skill import update_sound_manager
 
 def create_blur_surface(surface):
     scale = 0.25
@@ -54,7 +55,7 @@ def main(screen, clock, sound_manager, main_menu_callback):
     player.game_map = game_map
     player.sound_manager = sound_manager
     
-    partner = Partner(player)
+    partner = Partner(player, sound_manager)  # Pastikan sound_manager diteruskan
     all_sprites.add(player)
     all_sprites.add(partner)
     
@@ -82,13 +83,19 @@ def main(screen, clock, sound_manager, main_menu_callback):
     enemy_spawn_timer = 0
     projectile_timer = 0
     font = load_font(36)
+    
+    # Initialize UI elements - specify "solo" mode for skill bar
     health_bar = HealthBar()
     money_display = MoneyDisplay()
     xp_bar = XPBar(WIDTH, HEIGHT)
-    
-    # Initialize mini map
+    skill_bar = SkillBar(player_id=1, mode="solo")  # Using solo mode with 3 skills
+    skill_bar.player = player  # Add player reference
+    interaction_button = InteractionButton()
     mini_map = MiniMap(game_map.width, game_map.height, WIDTH, HEIGHT)
     
+    # Create a new sprite group for skill effects
+    skill_effects = pygame.sprite.Group()
+
     death_transition = False
     death_alpha = 0
     blur_surface = None
@@ -121,13 +128,12 @@ def main(screen, clock, sound_manager, main_menu_callback):
     original_health = None
 
     devil = None
-    devil_spawn_times = [4*60*1000]  # ms, menit ke-4
+    devil_spawn_times = [2*60*1000]  # ms, menit ke-2
     next_devil_time = devil_spawn_times[0]
     devil_notif_timer = 0
     devil_notif_show = False
 
     # Add interaction button and shop
-    interaction_button = InteractionButton()
     from ui import DevilShop
     devil_shop = DevilShop(sound_manager)
     
@@ -144,8 +150,17 @@ def main(screen, clock, sound_manager, main_menu_callback):
     bi_spawn_timer = 0
     last_second = 0
     
+    # Update sound manager for skills
+    update_sound_manager(sound_manager)
+    
+    # Add a variable to track if enemy spawns should be blocked
+    nuke_blocking_spawns = False
+
     while running:
         dt = clock.tick(FPS) / 1000.0
+        
+        # Update skill cooldowns
+        skill_bar.update(dt)
         
         # Collect events before processing to pass to shop
         current_events = []
@@ -154,6 +169,39 @@ def main(screen, clock, sound_manager, main_menu_callback):
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
+                # Handle skill activation with three separate keys
+                if event.key == pygame.K_1:
+                    skill = skill_bar.activate_skill(0)
+                    if skill:
+                        if skill.name == "Heal":
+                            effect = skill.activate(player, enemies=enemies)
+                        elif skill.name == "Nuke":
+                            effect = skill.activate(player, enemies=enemies)
+                        else:
+                            effect = skill.activate(player.rect.center, enemies=enemies)
+                        if effect:
+                            all_sprites.add(effect)
+                            skill_effects.add(effect)
+                elif event.key == pygame.K_2:
+                    skill = skill_bar.activate_skill(1)
+                    if skill:
+                        if skill.name == "Heal":
+                            effect = skill.activate(player, enemies=enemies)
+                        else:
+                            effect = skill.activate(player.rect.center, enemies=enemies)
+                        if effect:
+                            all_sprites.add(effect)
+                            skill_effects.add(effect)
+                elif event.key == pygame.K_3:
+                    skill = skill_bar.activate_skill(2)
+                    if skill:
+                        if skill.name == "Heal":
+                            effect = skill.activate(player, enemies=enemies)
+                        else:
+                            effect = skill.activate(player.rect.center, enemies=enemies)
+                        if effect:
+                            all_sprites.add(effect)
+                            skill_effects.add(effect)
                 if event.key == pygame.K_ESCAPE:
                     if devil_shop.is_open:
                         devil_shop.close()
@@ -285,10 +333,18 @@ def main(screen, clock, sound_manager, main_menu_callback):
         MAX_ENEMIES = 15
         # Only spawn enemies if boss isn't spawned yet
         if enemy_spawn_timer >= 60 and len(enemies) < MAX_ENEMIES and not boss_spawned:
-            enemy = Enemy((player.rect.centerx, player.rect.centery))
-            all_sprites.add(enemy)
-            enemies.add(enemy)
-            enemy_spawn_timer = 0
+            # Add check for nuke blocking
+            spawn_blocked = False
+            for effect in skill_effects:
+                if hasattr(effect, 'block_enemy_spawns') and effect.block_enemy_spawns:
+                    spawn_blocked = True
+                    break
+            
+            if not spawn_blocked:
+                enemy = Enemy((player.rect.centerx, player.rect.centery))
+                all_sprites.add(enemy)
+                enemies.add(enemy)
+                enemy_spawn_timer = 0
 
         projectile_timer += 1
         # Ubah kondisi menjadi memeriksa boss atau enemies
@@ -497,19 +553,26 @@ def main(screen, clock, sound_manager, main_menu_callback):
             
             particle_system.draw(screen, camera)
             
+            # First draw the regular sprites with camera offset
             for sprite in all_sprites:
-                if isinstance(sprite, Enemy):
-                    sprite.draw(screen, (camera.x, camera.y))
-                elif isinstance(sprite, Gollux):
-                    sprite.draw(screen, (camera.x, camera.y))
-                else:
-                    screen.blit(sprite.image, camera.apply(sprite))
+                if not hasattr(sprite, 'is_fullscreen_effect'):
+                    if hasattr(sprite, 'draw'):
+                        sprite.draw(screen, (camera.x, camera.y))
+                    else:
+                        screen.blit(sprite.image, (sprite.rect.x + camera.x, sprite.rect.y + camera.y))
+
+            # Then draw fullscreen effects directly on screen
+            for sprite in all_sprites:
+                if hasattr(sprite, 'is_fullscreen_effect') and sprite.is_fullscreen_effect:
+                    if hasattr(sprite, 'draw'):
+                        sprite.draw(screen)
 
             health_bar.draw(screen, player.health, player.max_health)
             
             money_display.draw(screen, player.session_money)
             
             xp_bar.draw(screen, player.xp, player.max_xp, player.level)
+            skill_bar.draw(screen)  # Draw the 3-slot skill bar
         
         # --- SESSION TIMER ---
         elapsed_ms = pygame.time.get_ticks() - session_start_ticks - cheat_pause_ticks - pause_ticks
@@ -531,7 +594,7 @@ def main(screen, clock, sound_manager, main_menu_callback):
             last_second = current_second
 
         # Spawn Bi enemies after 1 minute with a slower spawn rate
-        if game_time_seconds >= 60:  # Only spawn Bi after 1 minute
+        if game_time_seconds >=60:  # Only spawn Bi after 1 minute
             bi_spawn_timer += 1
             if bi_spawn_timer >= 200 and len(bi_enemies) < 3:  # Slower spawn rate, max 3 Bi enemies
                 bi_enemy = BiEnemy((player.rect.centerx, player.rect.centery))
@@ -548,9 +611,9 @@ def main(screen, clock, sound_manager, main_menu_callback):
             devil_notif_show = True
             # Jadwalkan spawn berikutnya
             if len(devil_spawn_times) == 1:
-                devil_spawn_times.append(next_devil_time + 5*60*1000)
+                devil_spawn_times.append(next_devil_time + 2*60*1000)
             else:
-                devil_spawn_times.append(devil_spawn_times[-1] + 5*60*1000)
+                devil_spawn_times.append(devil_spawn_times[-1] + 2*60*1000)
             next_devil_time = devil_spawn_times[-1]
 
         if devil:
@@ -601,9 +664,8 @@ def main(screen, clock, sound_manager, main_menu_callback):
         health_bar.draw(screen, player.health, player.max_health)
         money_display.draw(screen, player.session_money)
         xp_bar.draw(screen, player.xp, player.max_xp, player.level)
-        
-        # Draw mini map
         mini_map.draw(screen, player, None, enemies, devil, boss)
+        skill_bar.draw(screen)  # Draw the 3-slot skill bar
         
         # Draw timer
         screen.blit(timer_surface, timer_rect)
@@ -651,6 +713,9 @@ def main(screen, clock, sound_manager, main_menu_callback):
                 screen.blit(warning_text, warning_rect)
             else:
                 show_boss_warning = False
+
+        # Update skill effects
+        skill_effects.update(dt, enemies)  # Update skill effects and pass enemies for damage
 
         pygame.display.flip()
 

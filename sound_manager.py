@@ -37,7 +37,7 @@ class SoundManager:
         for i in range(2):
             throw_sound = self.load_sound(os.path.join("assets", "sound", "partner", f"throw{i}.ogg"))
             if throw_sound:
-                throw_sound.set_volume(0.1)  # Set reasonable volume
+                throw_sound.set_volume(0.2)  # Increased volume from 0.1 to 0.3
                 self.partner_throw_sounds.append(throw_sound)
                 
         # Load Boss Gollux sound effects
@@ -151,7 +151,7 @@ class SoundManager:
     
     def play_random_partner_throw(self, partner_type="eagle"):
         """Play a random throw sound effect for the partner"""
-        if partner_type == "eagle" and self.partner_throw_sounds:
+        if self.partner_throw_sounds:  # Removed partner_type check to ensure it plays
             random.choice(self.partner_throw_sounds).play()
     
     def play_gollux_walk(self):
@@ -168,4 +168,22 @@ class SoundManager:
         """Play death sound for Gollux"""
         if self.gollux_death_sound:
             self.gollux_death_sound.play()
+    
+    def play_gold_sound(self):
+        """Play sound effect for gold/money transactions"""
+        try:
+            # Try to load and play the gold sound from the assets directory
+            gold_sound_path = os.path.join("assets", "sound", "ui", "coin.ogg")
+            if os.path.exists(gold_sound_path):
+                gold_sound = pygame.mixer.Sound(gold_sound_path)
+                gold_sound.set_volume(self.volume / 100.0)  # Apply the current volume setting
+                gold_sound.play()
+            else:
+                # Fallback to UI click sound if dedicated gold sound doesn't exist
+                self.play_ui_click()
+        except Exception as e:
+            print(f"Error playing gold sound: {e}")
+            # As a last resort, use the UI click sound
+            if hasattr(self, 'play_ui_click'):
+                self.play_ui_click()
 

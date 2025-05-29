@@ -3,10 +3,11 @@ import math
 import os
 
 class Partner(pygame.sprite.Sprite):
-    def __init__(self, player):
+    def __init__(self, player, sound_manager=None):
         super().__init__()
         self.player = player
         self.player_id = player.player_id
+        self.sound_manager = sound_manager  # Pastikan sound_manager diinisialisasi
         
         self.eagle_frames = []
         for i in range(1, 5):
@@ -73,9 +74,11 @@ class Partner(pygame.sprite.Sprite):
         self.shooting_direction = 'left' if target_pos[0] < self.rect.centerx else 'right'
         self.shooting_target = target_pos  # Store target position for projectile creation
         
-        # Play throw sound if eagle type (only eagle uses rock projectiles)
-        if self.partner_type == "eagle" and hasattr(self.player, 'sound_manager'):
-            self.player.sound_manager.play_random_partner_throw("eagle")
+        # Play throw sound
+        if hasattr(self, 'sound_manager') and self.sound_manager:
+            
+            # Panggil suara throw secara langsung dan pastikan sound_manager tersedia
+            self.sound_manager.play_random_partner_throw()
 
     def stop_shooting(self):
         self.is_shooting = False
