@@ -75,4 +75,3 @@ class PlayerAnimations:
         self.frame_index = 0  # frame index awal
         self.animation_speed = 0.15  # kecepatan animasi
         self.animation_timer = 0  # timer animasi
-

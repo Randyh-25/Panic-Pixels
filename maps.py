@@ -5,23 +5,23 @@ import os
 
 class Map:
     def __init__(self, map_file):
-        if not os.path.exists(map_file): # mengecek apakah file peta ada
-            raise FileNotFoundError(f"Map file not found: {map_file}") 
+        if not os.path.exists(map_file):
+            raise FileNotFoundError(f"Map file not found: {map_file}")
             
         try:
-            self.base_map = pygame.image.load(map_file).convert_alpha() # membuat gambar peta dengan transparansi
+            self.base_map = pygame.image.load(map_file).convert_alpha()
         except pygame.error as e:
-            raise Exception(f"Could not load map image: {e}") # menangani eror saat loading gambar
+            raise Exception(f"Could not load map image: {e}")
             
-        self.bg_color = (245, 222, 179) # warna latar belakang
+        self.bg_color = (245, 222, 179)
         
         self.tile_width = self.base_map.get_width()
         self.tile_height = self.base_map.get_height()
         self.width = self.tile_width * 4
         self.height = self.tile_height * 4
         
-        self.map_surface = pygame.Surface((self.width, self.height)) # membuat surface kosong untuk peta penuh
-        self.map_surface.fill(self.bg_color) # mengisi surface dengan latar belakang
+        self.map_surface = pygame.Surface((self.width, self.height))
+        self.map_surface.fill(self.bg_color)
         
         for row in range(4):
             for col in range(4):
@@ -77,7 +77,7 @@ class Map:
                 self.fence_corners[corner].get_height()
             ))
         
-        h_spacing = self.fence_horizontal.get_width() - 5 
+        h_spacing = self.fence_horizontal.get_width() - 5
         v_spacing = self.fence_vertical.get_height() - 5
         
         for x in range(offset + self.fence_corners['tl'].get_width(), 
@@ -130,7 +130,7 @@ class Map:
             'dead-tree5': 1.8
         }
         
-        self.natural_objects = {} # Inisialisasi dictionary untuk menyimpan objek alami yang sudah diskalakan
+        self.natural_objects = {}
         for key, scale in self.object_scales.items():
             try:
                 path = f"assets/maps/desert/obj/{key}.png"

@@ -4,18 +4,18 @@ import math
 
 class DustParticle:
     def __init__(self, x, y, screen_width, screen_height):
-        self.x = x # posisi horizontal awal 
-        self.y = y # posisi vertikel awal
+        self.x = x
+        self.y = y
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.size = random.uniform(2, 5) 
         self.speed = random.uniform(0.2, 1.0) 
-        self.angle = random.uniform(0, 2 * math.pi) # arah gerak partikel dalam radian
+        self.angle = random.uniform(0, 2 * math.pi)
         self.dx = math.cos(self.angle) * self.speed
         self.dy = math.sin(self.angle) * self.speed
-        self.max_lifetime = random.randint(200, 500) # waktu hidup maksimum partikel
-        self.lifetime = self.max_lifetime # sisa waktu hidup partikel, dan akan menurun tiap frame
-        self.alpha = random.randint(50, 150) # transparansi partikel
+        self.max_lifetime = random.randint(200, 500)
+        self.lifetime = self.max_lifetime
+        self.alpha = random.randint(50, 150)
         
         base_colors = [
             (245, 222, 179),  # Light sand
@@ -28,32 +28,31 @@ class DustParticle:
 
 class ParticleSystem:
     def __init__(self, screen_width, screen_height):
-        self.particles = [] # list untuk menyimpan semua partikel yang aktif
+        self.particles = []
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.particle_surface = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
-        self.max_particles = 50  # batasi jumlah maksimum partikel 
+        self.max_particles = 50  # Batasi jumlah maksimum partikel
         
     def create_particle(self, x, y):
-        if len(self.particles) < self.max_particles: # hanya menambahkan jika belum mencapai batas maksimum
+        if len(self.particles) < self.max_particles:
             self.particles.append(DustParticle(x, y, self.screen_width, self.screen_height))
             
     def update(self, camera_x, camera_y):
-        # update hanya partikel yang terlihat dilayar
+        # Update hanya partikel yang terlihat di layar
         screen_rect = pygame.Rect(-camera_x, -camera_y, self.screen_width, self.screen_height)
         
         for particle in self.particles[:]:
-            if screen_rect.collidepoint(particle.x, particle.y): # hanya update partikel yang terlihat
+            if screen_rect.collidepoint(particle.x, particle.y):
                 particle.x += particle.dx
                 particle.y += particle.dy
-                particle.lifetime -= 1 # kurangi umur partikel setiap frame
+                particle.lifetime -= 1
                 
-                if particle.lifetime <= 0: # jika umur habis
-                    self.particles.remove(particle) # hapus partikel dari sistem
+                if particle.lifetime <= 0:
+                    self.particles.remove(particle)
                 else:
                     particle.alpha = int((particle.lifetime / particle.max_lifetime) * 100)
-
-            # wrap-around (membuat partikel muncul kembali ke sisi lain layar jika keluar dari batas)
+                
             particle.x = (particle.x + self.screen_width) % self.screen_width
             particle.y = (particle.y + self.screen_height) % self.screen_height
             

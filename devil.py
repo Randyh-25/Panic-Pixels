@@ -13,16 +13,12 @@ class Devil(pygame.sprite.Sprite):
         # Animasi idle
         self.idle_frames = []
         for i in range(1, 8):
-            # membuat path untuk setiap frame gambar animasi idle
             path = os.path.join("assets", "devil", "idle", f"idle ({i}).png")
-            # membuat gambar dan menghapus latar belakang 
             img = pygame.image.load(path).convert_alpha()
-            # mengubah ukuran gambar sesuai ukuran DEVIL_SIZE
             img = pygame.transform.scale(img, DEVIL_SIZE)
-            # menambahkan gambar ke daftar frame
             self.idle_frames.append(img)
 
-        # animasi guard (menjaga)
+        # Animasi guard (menjaga)
         self.guard_frames = []
         for i in range(1, 14):
             path = os.path.join("assets", "devil", "guard", f"guard ({i}).png")
@@ -47,11 +43,11 @@ class Devil(pygame.sprite.Sprite):
         self.damage_circle_color = (255, 0, 0, 80)  # Merah transparan
         self.damage_circle_active = False  # Default: tidak aktif
 
-        # status interaksi
+        # Status interaksi
         self.is_player_in_range = False
         self.is_shop_enabled = True  # Devil sekarang menjadi penjaga toko
 
-        # setup animasi
+        # Setup animasi
         self.frame_idx = 0
         self.anim_timer = 0
         self.anim_speed = 0.15
@@ -61,12 +57,12 @@ class Devil(pygame.sprite.Sprite):
         self.guard_speed = 0.08
         self.guard_completed = False  # Flag animasi guard selesai
 
-        # gambar awal dan posisi awal
+        # Gambar awal & posisi awal
         self.image = self.idle_frames[0]
         self.rect = self.image.get_rect()
         self.spawn_random(map_width, map_height)
 
-        # status animasi dan waktu
+        # Status animasi dan waktu
         self.state = "idle"  # idle, guard, spawn, despawn
         self.state_timer = 0
         self.guard_duration = 5
@@ -80,10 +76,10 @@ class Devil(pygame.sprite.Sprite):
         self.despawn_anim_speed = 0.09
         self.despawn_anim_timer = 0
 
-        self.damage_active = False  # flag untuk fungsi damage
+        self.damage_active = False  # Flag untuk fungsi damage
 
         self.fading_out = False  # Untuk fade-out saat menghilang
-        self.fx_alpha = 255  # transparansi saat fade-out
+        self.fx_alpha = 255  # Transparansi saat fade-out
 
     def spawn_random(self, map_width, map_height):
         """Memposisikan devil secara acak di tepi map"""
@@ -108,14 +104,14 @@ class Devil(pygame.sprite.Sprite):
     def update(self, dt, player_rect, enemies_group=None):
         """Update animasi dan interaksi devil"""
         if self.fading_out:
-            # menghilang perlahan
+            # Menghilang perlahan
             self.fx_alpha = max(0, self.fx_alpha - int(255 * dt * 2))
             if self.fx_alpha == 0:
                 self.kill()
             return
 
         if self.despawning:
-            # animasi menghilang
+            # Animasi menghilang
             self.despawn_anim_timer += dt
             if self.despawn_anim_timer >= self.despawn_anim_speed:
                 self.despawn_anim_timer = 0
@@ -127,7 +123,7 @@ class Devil(pygame.sprite.Sprite):
                     self.image = self.spawn_frames[self.despawn_frame]
             return
 
-        # timer hidup devil
+        # Timer hidup devil
         self.despawn_timer += dt
         if self.despawn_timer >= self.lifetime and not self.despawning:
             self.despawning = True

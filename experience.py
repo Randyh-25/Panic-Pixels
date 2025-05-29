@@ -78,4 +78,3 @@ class LevelUpEffect(pygame.sprite.Sprite):
                 self.kill()  # Hapus sprite dari grup
             else:
                 self.image = self.frames[self.frame_index]  # Tampilkan frame berikutnya
-

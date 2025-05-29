@@ -92,18 +92,18 @@ class Player(pygame.sprite.Sprite):
 
         # Only process if the animation isn't already complete
         if not self.death_animation_complete:
-            self.death_timer += dt # menambah timer kematian dengan delta waktu
+            self.death_timer += dt
             if self.death_timer >= self.death_animation_speed:
-                self.death_timer = 0 # mereset timer animasi kematian
-                self.death_frame += 1 # menaikkan index frame kematian
+                self.death_timer = 0
+                self.death_frame += 1
                 if self.death_frame < len(self.animations.animations['death']):
                     self.image = self.animations.animations['death'][self.death_frame]
                 else:
                     # Set the flag when animation completes
-                    self.death_animation_complete = True # menandai animasi kematian sudah selesai
+                    self.death_animation_complete = True
                     # Keep the last frame visible
-                    self.death_frame = len(self.animations.animations['death']) - 1 # tetap di frame trakhir animasi kematian
-                    self.image = self.animations.animations['death'][self.death_frame] # set gambar ke frame terakhir
+                    self.death_frame = len(self.animations.animations['death']) - 1
+                    self.image = self.animations.animations['death'][self.death_frame]
                     return True
     
         # Return True if animation has completed, False otherwise

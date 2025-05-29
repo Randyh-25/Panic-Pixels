@@ -5,15 +5,15 @@ import os
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, player_pos):
-        super().__init__() # inisialisasi kelas induk sprite
+        super().__init__()
         try:
-            self.shadow_img = pygame.image.load("assets/shadow.png").convert_alpha() # load gambar shadow dengan transparansi
+            self.shadow_img = pygame.image.load("assets/shadow.png").convert_alpha()
             shadow_size = (100, 50)
-            self.shadow_img = pygame.transform.scale(self.shadow_img, shadow_size) # ubah ukuran shadow
-            self.shadow_offset_y = -20 # offset vertikal shadow dari posisi enemy
+            self.shadow_img = pygame.transform.scale(self.shadow_img, shadow_size)
+            self.shadow_offset_y = -20
         except pygame.error as e:
-            print(f"Error loading shadow sprite: {e}") # cetak error jika gagal load gambar
-            self.shadow_img = None # set shadow ke none jika gagal load
+            print(f"Error loading shadow sprite: {e}")
+            self.shadow_img = None
 
         # Load sound effects for fly-eye
         self.hit_sounds = []
@@ -35,15 +35,15 @@ class Enemy(pygame.sprite.Sprite):
             print(e)
             self.death_sound = None
 
-        self.walk_frames = [] # list untuk menyimpan frame animasi berjalan
-        for i in range(8): # loop untuk 8 frame animasi
-            path = os.path.join("assets", "enemy", "fly-eye", "walk", f"fly{i}.png") # buat path file gambar
+        self.walk_frames = []
+        for i in range(8):
+            path = os.path.join("assets", "enemy", "fly-eye", "walk", f"fly{i}.png")
             try:
-                image = pygame.image.load(path).convert_alpha() # load gambar dengan transparansi
-                image = pygame.transform.scale(image, (128, 128)) # ubah ukuran gambar 
-                self.walk_frames.append(image) # menambahkan gambar ke list frame
+                image = pygame.image.load(path).convert_alpha()
+                image = pygame.transform.scale(image, (128, 128))
+                self.walk_frames.append(image)
             except pygame.error as e:
-                print(f"Error loading enemy sprite: {path}") # cetak path jika gagal load
+                print(f"Error loading enemy sprite: {path}")
                 print(e)
         
         self.hit_frames = []
@@ -57,15 +57,15 @@ class Enemy(pygame.sprite.Sprite):
                 print(f"Error loading hit sprite: {path}")
                 print(e)
         
-        self.death_frames = [] # list untuk animasi kematian 
-        for i in range(4): 
+        self.death_frames = []
+        for i in range(4):
             path = os.path.join("assets", "enemy", "fly-eye", "death", f"death{i}.png")
             try:
-                image = pygame.image.load(path).convert_alpha() # load gambar dengan transparansi
-                image = pygame.transform.scale(image, (128, 128)) # mengubah ukuran gambar
-                self.death_frames.append(image) # menambahkan gambar ke list frame kematian
+                image = pygame.image.load(path).convert_alpha()
+                image = pygame.transform.scale(image, (128, 128))
+                self.death_frames.append(image)
             except pygame.error as e:
-                print(f"Error loading death sprite: {path}") # cetak path jika gagal load
+                print(f"Error loading death sprite: {path}")
                 print(e)
 
         # Load attack frames
@@ -166,18 +166,18 @@ class Enemy(pygame.sprite.Sprite):
         
         for enemy in enemies:
             if enemy != self:
-                distance = pygame.math.Vector2( # menghitung vektor jarak ke musuh lain
+                distance = pygame.math.Vector2(
                     self.rect.centerx - enemy.rect.centerx,
                     self.rect.centery - enemy.rect.centery
                 )
-                dist_length = distance.length() # menghitung panjang jarak vektor
+                dist_length = distance.length()
                 
                 if dist_length < self.separation_radius:
-                    if dist_length > 0: # menghindari pembagian dengan nol
+                    if dist_length > 0:
                         separation += distance.normalize() / dist_length
                     else:
-                        angle = random.uniform(0, 2 * math.pi) # memilih sudut acak 0 sampai 2phi
-                        separation += pygame.math.Vector2( # menambahkan vektor acak dengan arah berdasarkan sudut
+                        angle = random.uniform(0, 2 * math.pi)
+                        separation += pygame.math.Vector2(
                             math.cos(angle),
                             math.sin(angle)
                         )
@@ -241,14 +241,14 @@ class Enemy(pygame.sprite.Sprite):
             return None, 0
         
         else:
-            self.animation_time += dt # menambah waktu animasi 
+            self.animation_time += dt
             if self.animation_time >= self.animation_speed:
-                self.animation_time = 0 # reset waktu animasi
-                self.current_frame = (self.current_frame + 1) % len(self.walk_frames) # menghitung index frame berikutnya secara melingkar
+                self.animation_time = 0
+                self.current_frame = (self.current_frame + 1) % len(self.walk_frames)
                 self.image = self.walk_frames[self.current_frame]
                 if self.facing_left:
                     self.image = pygame.transform.flip(self.image, True, False)
-            return None, 0 # kembali ke tuple none dan 0
+            return None, 0
 
     def update(self, player, enemies=None):
         if self.is_dying:
