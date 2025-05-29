@@ -21,14 +21,14 @@ from bi_enemy import BiEnemy
 from bi_projectile import BiProjectile
 
 def create_blur_surface(surface):
-    scale = 0.25
+    scale = 0.25 # skala pengecilan untuk menciptakan efek blur
     small_surface = pygame.transform.scale(surface, 
-        (int(surface.get_width() * scale), int(surface.get_height() * scale)))
+        (int(surface.get_width() * scale), int(surface.get_height() * scale))) # mengecilkan permukaan
     return pygame.transform.scale(small_surface, 
-        (surface.get_width(), surface.get_height()))
+        (surface.get_width(), surface.get_height())) # memperbesar kembali untuk menghasilkan efek blur
 
 def split_screen_main(screen, clock, sound_manager, main_menu_callback):
-    map_path = os.path.join("assets", "maps", "desert", "plain.png")
+    map_path = os.path.join("assets", "maps", "desert", "plain.png") # path ke peta default
     map_type = "desert"  # Default to desert map
     
     cheat_mode = False
@@ -38,9 +38,9 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
     original_health = None
 
     try:
-        game_map = Map(map_path)
+        game_map = Map(map_path) # mencoba memuat peta permainan
     except Exception as e:
-        print(f"Error loading map: {e}")
+        print(f"Error loading map: {e}") # menampilkan pesan error jika gagal memuat peta
         return
 
     sound_manager.play_gameplay_music(map_type)
@@ -118,10 +118,10 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                     continue
                 if offset_x > 0 and getattr(p, "player_id", 1) != 2:
                     continue
-            # Jangan tampilkan jika player sedang mati
+            # jangan tampilkan jika player sedang mati
             if getattr(p, "is_dying", False):
                 continue
-            # Hitung posisi di layar
+            # hitung posisi di layar
             px = p.rect.centerx + (camera.x2 if (camera.split_mode and offset_x > 0) else camera.x)
             py = p.rect.top + (camera.y2 if (camera.split_mode and offset_x > 0) else camera.y)
             label_surface = font_label.render(label, True, color)
@@ -160,8 +160,8 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
     partner1.player_id = 1
     partner2.player_id = 2
 
-    # Create projectile pools for both players
-    MAX_PROJECTILES = 20
+    # create projectile pools for both player
+    MAX_PROJECTILES = 20 # jumlah maksimum proyektil yang disiapkan untuk setiap pemain
     projectile_pool1 = []
     projectile_pool2 = []
     
@@ -171,7 +171,7 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
             pool.append(projectile)
             all_sprites.add(projectile)
             group.add(projectile)
-            projectile.kill()
+            projectile.kill() # menghemat resource
 
     running = True
     paused = False
@@ -218,7 +218,7 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
     mini_map1 = MiniMap(game_map.width, game_map.height, WIDTH, HEIGHT, player_id=1, position="left")
     mini_map2 = MiniMap(game_map.width, game_map.height, WIDTH, HEIGHT, player_id=2, position="right")
     
-    # Boss spawn variables
+    # Boss spawn variabls
     boss = None
     boss_spawned = False
     boss_warning_timer = 0
@@ -228,39 +228,39 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
     while running:
         dt = clock.tick(FPS) / 1000.0
         
-        # Collect events before processing to pass to shop
-        current_events = []
+        # collect events before processing to pass to shop
+        current_events = [] menyimpan semua event untuk dikirim ke komponen seperti toko
         for event in pygame.event.get():
             current_events.append(event)
             if event.type == pygame.QUIT:
-                running = False
+                running = False # menghentikan loop utama jika pemain menutup jendela
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
+                if event.key == pygame.K_ESCAPE: # menutup toko jika sedang terbuka
                     if devil_shop.is_open:
                         devil_shop.close()
                     else:
-                        paused = True
+                        paused = True # mengaktifkan mode pause
                         pause_start = pygame.time.get_ticks()  # MULAI PAUSE
                         pause_menu(screen, main_menu_callback)
-                        paused = False
+                        paused = False # keluar dari mode pause setelah menu selesai
                         if pause_start is not None:
                             pause_ticks += pygame.time.get_ticks() - pause_start  # TAMBAHKAN DURASI PAUSE
-                            pause_start = None
+                            pause_start = None # reset nilai waktu mulai pause
                 # Add cheat console toggle
                 elif event.key == pygame.K_BACKQUOTE:
-                    cheat_mode = not cheat_mode
+                    cheat_mode = not cheat_mode # mengaktifkan atau menonaktifkan mode cheat
                     if cheat_mode:
-                        cheat_pause_start = pygame.time.get_ticks()
+                        cheat_pause_start = pygame.time.get_ticks() # untuk menghitung durasi
                     else:
                         if cheat_pause_start is not None:
-                            cheat_pause_ticks += pygame.time.get_ticks() - cheat_pause_start
-                            cheat_pause_start = None
+                            cheat_pause_ticks += pygame.time.get_ticks() - cheat_pause_start # menambahkan durasi cheat ke total
+                            cheat_pause_start = None # reset waktu mulai cheat
                     cheat_input = ""
                     cheat_message = ""
-                # Add E key to open shop when interaction is possible
+                # menambahkan tombol E untuk membuka toko jika interaksi memungkinkan
                 elif event.key == pygame.K_e:
                     if devil and devil.can_interact():
-                        devil_shop.open()
+                        devil_shop.open() # membuka tampilan toko devil
         
         if devil_shop.is_open:
             devil_shop.update(current_events)
@@ -275,12 +275,12 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                 active_player = player2
                 active_partner = partner2
 
-            # Process purchase if a player is active
+            # proses pembelian jika ada pemain yang aktif
             if devil_shop.is_open and active_player:
-                # If player presses enter or space, try to purchase the selected item
+                # jika pemain menekan enter atau space, lakukan pembelian item yang dipilih
                 keys = pygame.key.get_pressed()
                 if keys[pygame.K_RETURN] or keys[pygame.K_SPACE]:
-                    devil_shop.purchase_item(active_player, active_partner)
+                    devil_shop.purchase_item(active_player, active_partner) # proses pembelian
 
             # Skip regular game updates while shop is open
             devil_shop.draw(screen)
