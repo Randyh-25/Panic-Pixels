@@ -4,13 +4,14 @@ import math
 import os
 
 class Map:
-    def __init__(self, map_file):
-        if not os.path.exists(map_file):
-            raise FileNotFoundError(f"Map file not found: {map_file}")
+    def __init__(self, map_file): # menerima path file dari peta
+        if not os.path.exists(map_file): # cek apakah file peta ada
+            raise FileNotFoundError(f"Map file not found: {map_file}") jika tidak ada lempar error
             
         try:
+            # memuat gambar dengan transparansi
             self.base_map = pygame.image.load(map_file).convert_alpha()
-        except pygame.error as e:
+        except pygame.error as e: # tangani error jika gagal memuat gambar
             raise Exception(f"Could not load map image: {e}")
             
         self.bg_color = (245, 222, 179)
@@ -44,23 +45,26 @@ class Map:
         self.fence_horizontal = pygame.transform.scale(self.fence_horizontal, horizontal_size)
         
         self.fence_corners = {}
+        # nama file gambar untuk tiap sudut pagar
         corner_files = {
             'tl': 'fence-border-top-left.png',
             'tr': 'fence-border-top-right.png',
             'bl': 'fence-border-bottom-left.png',
             'br': 'fence-border-bottom-right.png'
         }
-        
+
+        # memuat dan skalakan gambar sudut pagar sesuai faktor skala
         for key, filename in corner_files.items():
             img = pygame.image.load(f"assets/maps/desert/obj/{filename}").convert_alpha()
-            size = (int(img.get_width() * scale_factor), 
+            size = (int(img.get_width() * scale_factor), # menghitung ukuran baru berdasarkan skala
                    int(img.get_height() * scale_factor))
-            self.fence_corners[key] = pygame.transform.scale(img, size)
+            self.fence_corners[key] = pygame.transform.scale(img, size) # menyimpan gambar yang sudah diskalakan
         
         self.fence_rects = []
         
         offset = 10
-        
+
+        # posisi masing-masing sudut pagar dipermukaan peta dengan offset dari tepi
         corner_positions = [
             ('tl', (offset, offset)),
             ('tr', (self.width - self.fence_corners['tr'].get_width() - offset, offset)),
@@ -68,7 +72,8 @@ class Map:
             ('br', (self.width - self.fence_corners['br'].get_width() - offset, 
                    self.height - self.fence_corners['br'].get_height() - offset))
         ]
-        
+
+        # menempelkan gambar pagar sudut ke permukaan peta dan simpan rect-nya
         for corner, pos in corner_positions:
             self.map_surface.blit(self.fence_corners[corner], pos)
             self.fence_rects.append(pygame.Rect(
@@ -79,11 +84,14 @@ class Map:
         
         h_spacing = self.fence_horizontal.get_width() - 5
         v_spacing = self.fence_vertical.get_height() - 5
-        
+
+        # loop untuk menggambar pagar horizontal di sepanjang sisi atas dan bawah peta
         for x in range(offset + self.fence_corners['tl'].get_width(), 
                       self.width - self.fence_corners['tr'].get_width() - offset, 
-                      h_spacing):
+                      h_spacing): # loncat posisi sesuai jarak antar pagar horizontal
+            # gambar pagar horizontal disisi atas peta
             self.map_surface.blit(self.fence_horizontal, (x, offset))
+            # simpan bounding box pagar horizontal atas untuk kondisi atau interaksi
             self.fence_rects.append(pygame.Rect(
                 x, offset,
                 self.fence_horizontal.get_width(),
@@ -131,12 +139,13 @@ class Map:
         }
         
         self.natural_objects = {}
+        # loop untuk memuat dan menskalakan gambar objek alami berdasarkan dictionary scale 
         for key, scale in self.object_scales.items():
             try:
-                path = f"assets/maps/desert/obj/{key}.png"
+                path = f"assets/maps/desert/obj/{key}.png" # path file gambar objek
                 if not os.path.exists(path):
                     print(f"Warning: {path} not found, skipping...")
-                    continue
+                    continue # lewati objek ini jika file tidak ada
                     
                 img = pygame.image.load(path).convert_alpha()
                 size = (int(img.get_width() * scale), int(img.get_height() * scale))
@@ -144,15 +153,17 @@ class Map:
             except Exception as e:
                 print(f"Error loading {key}: {e}")
                 continue
-
+        # memanggil fungsi untuk meletakkan objek alami di peta
         self._generate_natural_objects()
 
     def _create_shadow(self, surface, blur_radius=3, offset=(4, 4), shadow_color=(20, 20, 20)):
+        # membuat permukaan transparan baru dengan ukuran sama 
         shadow = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
         
         mask = pygame.mask.from_surface(surface)
         mask_surface = mask.to_surface(setcolor=shadow_color + (100,))
-        
+
+        # menerapkan efek blur manual dengan mengaburkan warna sekitarnya
         for _ in range(blur_radius):
             temp = mask_surface.copy()
             for x in range(1, mask_surface.get_width()-1):
