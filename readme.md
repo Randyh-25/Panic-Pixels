@@ -37,6 +37,14 @@ pip install -r requirements.txt
 
 ### Menjalankan Game
 
+#### Opsi 1: Download EXE (Khusus Windows)
+
+1. **Download versi EXE dari [Releases](https://github.com/Randyh-25/TooMuchPixels/releases)**
+2. **Extract file ZIP yang didownload**
+3. **Jalankan `TooMuchPixels.exe`**
+
+#### Opsi 2: Dari Source Code
+
 1. **Clone repository:**
     ```bash
     git clone https://github.com/yourusername/TooMuchPixels.git

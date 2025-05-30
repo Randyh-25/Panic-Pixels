@@ -6,7 +6,7 @@ import os
 class Map:
     def __init__(self, map_file): # menerima path file dari peta
         if not os.path.exists(map_file): # cek apakah file peta ada
-            raise FileNotFoundError(f"Map file not found: {map_file}") jika tidak ada lempar error
+            raise FileNotFoundError(f"Map file not found: {map_file}") #jika tidak ada lempar error
             
         try:
             # memuat gambar dengan transparansi
