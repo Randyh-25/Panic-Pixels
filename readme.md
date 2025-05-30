@@ -64,7 +64,9 @@ Kalahkan musuh, kumpulkan XP dan uang, lakukan upgrade, dan bertahan selama mung
 
 Berikut adalah gambaran sederhana UML class diagram untuk proyek ini:
 
-
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Randyh-25/TooMuchPixels/refs/heads/main/img/UML%20TooMuchPixels.drawio.png" alt="UML Class Diagram Too Many Pixels" width="700"/>
+</div>
 
 ---
 
