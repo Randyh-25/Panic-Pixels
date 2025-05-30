@@ -456,7 +456,7 @@ def main(screen, clock, sound_manager, main_menu_callback):
                 
                 # If boss is defeated, trigger victory
                 if boss_defeated:
-                    show_victory_screen(screen, player, sound_manager, main_menu_callback,
+                    show_victory_screen(screen, player.session_money, elapsed_seconds, sound_manager,
                                         "You've defeated Gollux! The world is saved!")
                     return
 
