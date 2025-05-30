@@ -1,0 +1,4 @@
+pygame>=2.1.0
+pygame-menu>=4.0.0
+numpy>=1.21.0
+soundfile>=0.12.1
