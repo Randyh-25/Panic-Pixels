@@ -1,14 +1,17 @@
 <div align="center">
 
-# 🎮 Too Many Pixels
+# 🎮 Too Much Pixels
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 [![Pygame](https://img.shields.io/badge/Pygame-Latest-green.svg)](https://www.pygame.org/)
 [![Version](https://img.shields.io/badge/Version-1.0-orange.svg)]()
+
+<img src="https://raw.githubusercontent.com/Randyh-25/TooMuchPixels/refs/heads/main/img/TooMuchPixels.png" alt="Too Many Pixels Banner" width="700"/>
+
 </div>
 
 ## 📖 Deskripsi Proyek
 
-**Too Many Pixels** adalah game survival shooter 2D berbasis Python dan Pygame. Pemain mengendalikan karakter pixel art di dunia gurun, bertahan dari gelombang musuh, mengumpulkan XP, uang, dan melakukan upgrade. Game ini mendukung mode solo dan co-op split-screen, serta menghadirkan berbagai fitur seperti partner AI, boss battle, efek partikel, dan sistem ekonomi dalam game.
+**Too Much Pixels** adalah game survival shooter 2D berbasis Python dan Pygame. Pemain mengendalikan karakter pixel art di dunia gurun, bertahan dari gelombang musuh, mengumpulkan XP, uang, dan melakukan upgrade. Game ini mendukung mode solo dan co-op split-screen, serta menghadirkan berbagai fitur seperti partner AI, boss battle, efek partikel, dan sistem ekonomi dalam game.
 
 ---
 
