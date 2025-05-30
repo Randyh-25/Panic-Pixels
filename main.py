@@ -13,76 +13,77 @@ import random
 from player_animations import PlayerAnimations
 
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)  
-pygame.display.set_caption("Too Much Pixels")
-clock = pygame.time.Clock()
-sound_manager = SoundManager()
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN) # membuat jendela layar penuh dengan ukuran tertentu 
+pygame.display.set_caption("Too Much Pixels") # menetapkan judul 
+clock = pygame.time.Clock() # membuat objek clock untuk mengatur frame rate
+sound_manager = SoundManager() # inisialisasi manajer suara
 
 # Inisialisasi animasi player sekali saja
-player_anim = PlayerAnimations()
+player_anim = PlayerAnimations() # objek animasi untuk player pertama 
 player_anim2 = PlayerAnimations()  # Untuk player kedua jika co-op
 
-# Particle effects for menu background
+# efek partikel untuk latar belakang
 class MenuParticle:
-    def __init__(self, x, y):
+    def __init__(self, x, y): # konstruktor dengan posisi awal partikel
         self.x = x
         self.y = y
-        self.size = random.randint(1, 3)
+        self.size = random.randint(1, 3) # ukuran partikel secara acak antara 1 dan 3
         self.color = (random.randint(180, 255), random.randint(180, 255), random.randint(180, 255))
         self.speed = random.uniform(0.2, 1.0)
         self.angle = random.uniform(0, 2 * math.pi)
         self.lifetime = random.randint(100, 200)
         
     def update(self):
-        self.x += math.cos(self.angle) * self.speed
-        self.y += math.sin(self.angle) * self.speed
-        self.lifetime -= 1
-        # Fade out effect
+        self.x += math.cos(self.angle) * self.speed # menggerakkan partikel secara horizontal berdasarkan sudut dan kecepatan
+        self.y += math.sin(self.angle) * self.speed # menggerakkan partikel secara vertikal berdasarkan sudut dan kecepatan
+        self.lifetime -= 1 # mengurangi umur partikel setiap frame
+
+        # efek menghilang
         if self.lifetime < 50:
-            alpha = int((self.lifetime / 50) * 255)
-            self.color = (*self.color[:3], alpha)
+            alpha = int((self.lifetime / 50) * 255) # menghitung tingkat transparansi berdasarkan sisa umur
+            self.color = (*self.color[:3], alpha) # menambahkan nilai alpha ke warna
         
-    def draw(self, surface):
-        if self.lifetime > 0:
-            pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.size)
+    def draw(self, surface): # menggambar partikel ke permukaan jika masi hidup
+        if self.lifetime > 0: # hanya gambar jika masih ada sisa umur
+            pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.size) # gambar lingkaran partikel
 
 class MenuParticleSystem:
-    def __init__(self, width, height):
+    def __init__(self, width, height): # menerima lebar dan tinggi area partikel
         self.width = width
         self.height = height
-        self.particles = []
-        self.spawn_timer = 0
+        self.particles = [] # menyimpan semua partikel aktif
+        self.spawn_timer = 0 # mengatur kapan partikel baru dibuat
         
-    def update(self):
-        # Add new particles occasionally
-        self.spawn_timer += 1
-        if self.spawn_timer >= 5:  # Spawn every 5 frames
+    def update(self): # memperbarui sistem partikel setiap frame
+        # menambahkan partikel baru secara berkala
+        self.spawn_timer += 1 # menambahkan timer
+        if self.spawn_timer >= 5:  # setiap 5 frame
             self.spawn_timer = 0
-            for _ in range(2):  # Spawn 2 particles at a time
+            for _ in range(2):  # menambahkan 2 partikel sekaligus
                 self.particles.append(MenuParticle(
                     random.randint(0, self.width),
                     random.randint(0, self.height)
                 ))
         
-        # Update existing particles
+        # memperbarui semua partikel yang ada
         for particle in self.particles[:]:
-            particle.update()
+            particle.update() # update status dan posisi partikel
             if particle.lifetime <= 0:
-                self.particles.remove(particle)
+                self.particles.remove(particle) # hapus partikel dari sistem
                 
-    def draw(self, surface):
+    def draw(self, surface): # menggambar semua partikel ke permukaan target
         for particle in self.particles:
-            particle.draw(surface)
+            particle.draw(surface) # memanggil metode draw milik masing-masing partikel
 
-# Create menu background with particles
-particle_system = MenuParticleSystem(WIDTH, HEIGHT)
-menu_background = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+# membuat latar belakang menu menggunakan partikel
+particle_system = MenuParticleSystem(WIDTH, HEIGHT) # inisialisasi sistem partikel untuk ukuran layar
+menu_background = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA) # surface transparan untuk latar menu
 
-# Custom sound engine for pygame_menu with enhanced feedback
+# mesin suara kustom untuk pygame_menu dengan feedback suara yang disesuaikan
 class SoundEngine(pygame_menu.sound.Sound):
-    def __init__(self, sound_manager):
+    def __init__(self, sound_manager): # menerima objek manajer suara dari game
         super().__init__()
-        self.sound_manager = sound_manager
+        self.sound_manager = sound_manager # menyimpan referensi ke manajer suara
         
     def play_click_sound(self) -> None:
         self.sound_manager.play_ui_click()
@@ -96,21 +97,21 @@ class SoundEngine(pygame_menu.sound.Sound):
     def play_close_menu_sound(self) -> None:
         self.sound_manager.play_ui_click()
 
-# Enhanced widget effect - pulse effect for buttons
+# efek widget yang ditingkatkan - efek denyut untuk tombol menu
 class PulseWidgetTransform(pygame_menu.widgets.core.Selection):
     def __init__(self):
         super().__init__()
-        self.pulse_time = 0
-        self.pulse_amplitude = 0.03  # Maximum scale factor
-        self.pulse_frequency = 0.05  # Speed of pulse
+        self.pulse_time = 0 # waktu untuk menghitung fase denyut
+        self.pulse_amplitude = 0.03  # seberapa besarr efek skala
+        self.pulse_frequency = 0.05  # seberapa cepat denyutan terjadi
         
     def draw(self, surface, widget):
         if widget.is_selected():
-            # Create a pulsing effect when selected
+            # buat efek denyutan dengan fungsi sinus untuk menghasilkan skaka yang naik-turun
             self.pulse_time += self.pulse_frequency
             scale_factor = 1.0 + self.pulse_amplitude * math.sin(self.pulse_time)
             
-            # Create a copy of the original surface to apply effects
+            # salin surface asli widget untuk diberi efek visual
             if hasattr(widget, '_surface'):
                 original_rect = widget.get_rect()
                 
@@ -137,14 +138,14 @@ class PulseWidgetTransform(pygame_menu.widgets.core.Selection):
                 
         return False
 
-# Helper function to create themed menu with enhanced visuals
+# fungsi bantu untuk membuat menu bertema dengan visual yang ditingkatkan
 def create_themed_menu(title, width, height):
-    # Create a custom theme with pixel art style
+    # membuat tema khusus berdasarkan tema gelap 
     theme = pygame_menu.themes.THEME_DARK.copy()
     theme.widget_font = FONT_PATH
     theme.title_font = FONT_PATH
     
-    # Enhanced title styling
+    # gaya judul yang ditingkatkan
     theme.title_background_color = (20, 20, 30, 220)
     theme.title_font_shadow = True
     theme.title_font_shadow_color = (0, 0, 0)
@@ -299,14 +300,15 @@ def splash_screen():
         clock.tick(60)
 
 def start_game(mode):
-    # Enhanced game start transition
+    # transisi awal 
     fade_surface = pygame.Surface((WIDTH, HEIGHT))
     fade_surface.fill(BLACK)
     
-    # Play UI click with slight delay before fading
+    # mainkan suara klik UI sebelum memulai transisi
     sound_manager.play_ui_click()
     pygame.time.delay(200)
-    
+
+    # efek transisi fade-in ke hitam
     for alpha in range(0, 255, 5):
         screen.fill((10, 10, 15))
         fade_surface.set_alpha(alpha)
@@ -314,29 +316,32 @@ def start_game(mode):
         pygame.display.flip()
         pygame.time.delay(5)
     
-    # Stop menu music with proper transition
+    # menghentikan musik menu dengan transisi
     sound_manager.stop_menu_music()
-    
+
+    # memindahkan ke mode permainan yang dipilih
     if mode == "solo":
-        solo.main(screen, clock, sound_manager, main_menu)
+        solo.main(screen, clock, sound_manager, main_menu) # mulai mode solo
     elif mode == "split_screen":
-        coop.split_screen_main(screen, clock, sound_manager, main_menu)
+        coop.split_screen_main(screen, clock, sound_manager, main_menu) # mulai mode split-screen co-op
 
 def settings_menu():
+    # buat menu bertema dengan judul "settings"
     menu = create_themed_menu(
         'Settings', 
         min(WIDTH, pygame.display.get_surface().get_width()),
         min(HEIGHT, pygame.display.get_surface().get_height())
     )
-    
+
+    # dungsi untuk toggle fullscreen saat dipilih di menu
     def toggle_fullscreen(value):
         global FULLSCREEN
         sound_manager.play_ui_click()
         FULLSCREEN = value
-        if value:
+        if value: # jika pengguna mengaktifkan fullscreen
             pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
             resolution_selector.hide()
-        else:
+        else: # jika fullscreen dimatikan
             pygame.display.set_mode(CURRENT_RESOLUTION)
             resolution_selector.show()
 
@@ -346,10 +351,11 @@ def settings_menu():
         if not FULLSCREEN:
             CURRENT_RESOLUTION = res
             pygame.display.set_mode(res)
+            # menyesuaikan ukuran menu agar sesuai dengan resolusi layar baru
             menu.resize(min(res[0], pygame.display.get_surface().get_width()),
                        min(res[1], pygame.display.get_surface().get_height()))
 
-    def change_volume(value):
+    def change_volume(value): # mengubah volume suara dari slider
         global VOLUME
         VOLUME = value
         sound_manager.set_volume(value)
