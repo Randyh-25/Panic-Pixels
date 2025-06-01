@@ -3,6 +3,9 @@ import os
 import random
 import math
 
+# List of available skill names that can be assigned to players
+available_skills = ["thunder_strike", "heal", "nuke"]
+
 class Skill:
     """Base class for all skills"""
     def __init__(self, sound_manager=None):
@@ -617,5 +620,13 @@ SKILL_REGISTRY = {
 def create_skill(skill_name, sound_manager=None):
     """Factory function to create a skill by name"""
     if skill_name in SKILL_REGISTRY:
-        return SKILL_REGISTRY[skill_name](sound_manager)
+        skill = SKILL_REGISTRY[skill_name](sound_manager)
+        
+        # Load icon if it doesn't exist
+        if not hasattr(skill, 'icon') or skill.icon is None:
+            icon_path = os.path.join("assets", "UI", "skill", f"{skill_name}.png")
+            if os.path.exists(icon_path):
+                skill.icon = pygame.image.load(icon_path).convert_alpha()
+                skill.icon_path = icon_path
+        return skill
     return None
