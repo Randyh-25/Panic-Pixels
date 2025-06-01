@@ -28,6 +28,282 @@ def create_blur_surface(surface):
     return pygame.transform.scale(small_surface, 
         (surface.get_width(), surface.get_height()))
 
+# Tambahkan fungsi helper untuk aktivasi skill yang konsisten
+def activate_player_skill(player, skill, enemies, all_sprites, skill_effects):
+    """Helper function to consistently activate skills for any player"""
+    effect = None
+    
+    if skill:
+        if skill.name == "Heal":
+            effect = skill.activate(player, enemies=enemies)
+        elif skill.name == "Nuke":
+            effect = skill.activate(player, enemies=enemies)
+            # Set variable pada effect untuk menandai blocking spawns
+            if effect:
+                effect.block_enemy_spawns = True
+        elif skill.name == "Shield":
+            effect = skill.activate(player, enemies=enemies)
+        else:
+            effect = skill.activate(player.rect.center, enemies=enemies)
+        
+        if effect:
+            all_sprites.add(effect)
+            skill_effects.add(effect)
+            return True
+    return False
+
+# Tambahkan konstanta untuk kontrol yang lebih jelas
+PLAYER1_SKILL_KEY = pygame.K_1        # Tombol "1" untuk Player 1
+PLAYER2_SKILL_KEY = pygame.K_RCTRL    # Tombol "Right Ctrl" untuk Player 2
+SHOP_INTERACT_KEY = pygame.K_e
+PLAYER1_BUY_KEY = pygame.K_RETURN     # Tombol Enter untuk pembelian Player 1
+PLAYER2_BUY_KEY = pygame.K_SLASH      # Tombol / untuk pembelian Player 2
+MENU_KEY = pygame.K_ESCAPE
+TOGGLE_CHEAT_KEY = pygame.K_BACKQUOTE  # Tombol ` (backtick) untuk toggle cheat console
+
+# Tambahkan class untuk mengelola interaksi shop
+class ShopInteractionManager:
+    def __init__(self, sound_manager):
+        self.shop = DevilShop(sound_manager)
+        self.active_player = None
+        self.active_partner = None
+        self.interaction_buttons = {}
+    
+    def set_active_player(self, player_id, player, partner):
+        self.active_player = player
+        self.active_partner = partner
+        # Visualisasi player aktif dengan highlight
+        if hasattr(self.shop, 'set_active_player'):
+            self.shop.set_active_player(player_id)
+    
+    def register_button(self, player_id, button):
+        self.interaction_buttons[player_id] = button
+    
+    def update_interactions(self, player1, player2, partner1, partner2):
+        # Reset status aktif
+        prev_active = self.active_player
+        self.active_player = None
+        self.active_partner = None
+        
+        # Check player 1 first (priority if both are in range)
+        if (player1.health > 0 and 
+            self.interaction_buttons.get(1) and 
+            self.interaction_buttons[1].is_visible):
+            self.set_active_player(1, player1, partner1)
+        # Then check player 2
+        elif (player2.health > 0 and 
+              self.interaction_buttons.get(2) and 
+              self.interaction_buttons[2].is_visible):
+            self.set_active_player(2, player2, partner2)
+        
+        # Notify shop if active player changed
+        if prev_active != self.active_player and hasattr(self.shop, 'on_active_player_changed'):
+            self.shop.on_active_player_changed()
+    
+    def draw_buttons(self, screen, left_viewport, right_viewport, camera, split_mode):
+        """Draw interaction buttons in the correct viewport"""
+        if split_mode:
+            # Left viewport (player 1)
+            if 1 in self.interaction_buttons and self.interaction_buttons[1].is_visible:
+                self.interaction_buttons[1].draw(
+                    screen.subsurface(left_viewport), (camera.x, camera.y),
+                    is_active=(self.active_player == player1)
+                )
+            
+            # Right viewport (player 2)
+            if 2 in self.interaction_buttons and self.interaction_buttons[2].is_visible:
+                self.interaction_buttons[2].draw(
+                    screen.subsurface(right_viewport), (camera.x2, camera.y2),
+                    is_active=(self.active_player == player2)
+                )
+        else:
+            # Single screen mode
+            for player_id, button in self.interaction_buttons.items():
+                if button.is_visible:
+                    button.draw(
+                        screen, (camera.x, camera.y),
+                        is_active=(player_id == (1 if self.active_player == player1 else 2))
+                    )
+
+# Ubah InteractionButton untuk support highlighting active player
+def update_interaction_button_class():
+    # Extend the InteractionButton class functionality
+    original_draw = InteractionButton.draw
+    
+    def enhanced_draw(self, surface, camera_offset, is_active=False):
+        # First call the original draw method
+        original_draw(self, surface, camera_offset)
+        
+        # Add highlight for active player
+        if is_active:
+            # Draw a glowing outline around the button
+            button_rect = self.image.get_rect()
+            button_rect.center = (
+                self.target_entity.rect.centerx + camera_offset[0],
+                self.target_entity.rect.top - 20 + camera_offset[1]
+            )
+            # Draw a slightly larger rectangle behind as highlight
+            highlight_rect = button_rect.copy()
+            highlight_rect.inflate_ip(6, 6)
+            pygame.draw.rect(surface, (255, 215, 0), highlight_rect, 2, border_radius=5)
+    
+    # Replace the original draw method
+    InteractionButton.draw = enhanced_draw
+
+# Perbaiki DevilShop untuk mendukung multi-player
+def enhance_devil_shop():
+    # Add necessary methods to the DevilShop class if they don't exist
+    if not hasattr(DevilShop, 'set_active_player'):
+        def set_active_player(self, player_id):
+            self.active_player_id = player_id
+            # Visual feedback for active player
+            self.active_indicator_timer = 1.0  # Timer untuk visual feedback
+            
+        DevilShop.set_active_player = set_active_player
+    
+    if not hasattr(DevilShop, 'on_active_player_changed'):
+        def on_active_player_changed(self):
+            # Reset selection atau lakukan aksi lain saat player aktif berubah
+            pass
+            
+        DevilShop.on_active_player_changed = on_active_player_changed
+    
+    # Enhance purchase method untuk menunjukkan player mana yang membeli
+    original_purchase = DevilShop.purchase_item
+    
+    def enhanced_purchase(self, player, partner, player_id=None):
+        # Tambahkan visual feedback untuk player mana yang melakukan pembelian
+        result = original_purchase(self, player, partner)
+        if result:
+            # Tampilkan pesan pembelian berhasil
+            self.show_purchase_message = True
+            self.purchase_message = f"Player {player_id or 1} purchased item!"
+            self.purchase_message_timer = 2.0  # Tampilkan selama 2 detik
+        return result
+    
+    DevilShop.purchase_item = enhanced_purchase
+
+# Perbaiki UI Manager untuk mode single dan split screen
+class CoopUIManager:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.split_width = width // 2
+        
+        # Initialize UI components
+        self.mini_map1 = MiniMap(0, 0, width, height, player_id=1, position="left")
+        self.mini_map2 = MiniMap(0, 0, width, height, player_id=2, position="right")
+        self.skill_bar1 = SkillBar(player_id=1, position="left", mode="coop")
+        self.skill_bar2 = SkillBar(player_id=2, position="right", mode="coop")
+        
+        # Divider settings
+        self.divider_width = 4
+        self.divider_color = (255, 215, 0)  # Gold color
+        self.shadow_width = 2
+        self.shadow_color = (100, 100, 100, 128)
+        
+    def set_map_dimensions(self, map_width, map_height):
+        """Update map dimensions for minimaps"""
+        self.mini_map1.update_dimensions(map_width, map_height)
+        self.mini_map2.update_dimensions(map_width, map_height)
+    
+    def set_players(self, player1, player2):
+        """Set player references for skill bars"""
+        self.skill_bar1.player = player1
+        self.skill_bar2.player = player2
+    
+    def draw_divider(self, screen):
+        """Draw the central divider in split screen mode"""
+        divider_rect = pygame.Rect(
+            self.width//2 - self.divider_width//2, 
+            0, 
+            self.divider_width, 
+            self.height
+        )
+        pygame.draw.rect(screen, self.divider_color, divider_rect)
+        
+        # Add shadow effects
+        pygame.draw.rect(
+            screen, 
+            self.shadow_color, 
+            pygame.Rect(
+                self.width//2 - self.divider_width//2 - self.shadow_width, 
+                0, 
+                self.shadow_width, 
+                self.height
+            )
+        )
+        pygame.draw.rect(
+            screen, 
+            self.shadow_color, 
+            pygame.Rect(
+                self.width//2 + self.divider_width//2, 
+                0, 
+                self.shadow_width, 
+                self.height
+            )
+        )
+    
+    def get_viewports(self):
+        """Return the viewport rectangles for split screen mode"""
+        left_viewport = pygame.Rect(
+            0, 
+            0, 
+            self.width//2 - self.divider_width//2, 
+            self.height
+        )
+        right_viewport = pygame.Rect(
+            self.width//2 + self.divider_width//2, 
+            0, 
+            self.width//2 - self.divider_width//2, 
+            self.height
+        )
+        return left_viewport, right_viewport
+    
+    def draw(self, screen, player1, player2, enemies, devil, boss, camera):
+        """Draw all UI elements based on current screen mode"""
+        split_mode = camera.split_mode
+        
+        if split_mode:
+            self.draw_divider(screen)
+            left_viewport, right_viewport = self.get_viewports()
+            
+            # Draw UI for Player 1 (left) if alive
+            if player1.health > 0:
+                self.mini_map1.adjust_for_split_screen(True, self.split_width)
+                self.mini_map1.draw(
+                    screen.subsurface(left_viewport), 
+                    player1, player2, enemies, devil, boss
+                )
+                self.skill_bar1.adjust_position(True, self.width)
+                self.skill_bar1.draw(screen)
+            
+            # Draw UI for Player 2 (right) if alive
+            if player2.health > 0:
+                self.mini_map2.adjust_for_split_screen(True, self.split_width)
+                self.mini_map2.draw(
+                    screen.subsurface(right_viewport), 
+                    player2, player1, enemies, devil, boss
+                )
+                self.skill_bar2.adjust_position(True, self.width)
+                self.skill_bar2.draw(screen)
+        else:
+            # Single screen mode - draw UI elements that make sense
+            if player1.health > 0:
+                self.mini_map1.adjust_for_split_screen(False, self.width)
+                self.mini_map1.draw(screen, player1, player2, enemies, devil, boss)
+                self.skill_bar1.adjust_position(False, self.width)
+                self.skill_bar1.draw(screen)
+            
+            if player2.health > 0:
+                # In single screen, only draw player 2's UI if they're alive
+                # and place it in a non-conflicting position
+                self.mini_map2.adjust_for_split_screen(False, self.width)
+                self.mini_map2.draw(screen, player2, player1, enemies, devil, boss)
+                self.skill_bar2.adjust_position(False, self.width)
+                self.skill_bar2.draw(screen)
+
+# Perbarui fungsi split_screen_main dengan semua perbaikan
 def split_screen_main(screen, clock, sound_manager, main_menu_callback):
     map_path = os.path.join("assets", "maps", "desert", "plain.png")
     map_type = "desert"  # Default to desert map
@@ -290,64 +566,49 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
-                # Player 1 skill activation (key 1 only)
-                if event.key == pygame.K_1 and player1.health > 0:
+                # Player 1 skill activation (key 1)
+                if event.key == PLAYER1_SKILL_KEY and player1.health > 0:
                     skill = skill_bar1.activate_skill()
-                    if skill:
-                        if skill.name == "Heal":
-                            effect = skill.activate(player1, enemies=enemies)
-                        elif skill.name == "Nuke":
-                            effect = skill.activate(player1, enemies=enemies)
-                            if effect:
-                                nuke_blocking_spawns = True  # Block enemy spawns
-                        else:
-                            effect = skill.activate(player1.rect.center, enemies=enemies)
-                        if effect:
-                            all_sprites.add(effect)
-                            skill_effects.add(effect)
-
-                # Player 2 skill activation (right Ctrl instead of numpad 1)
-                elif event.key == pygame.K_RCTRL and player2.health > 0:  # Changed from K_KP1 to K_RCTRL
+                    activate_player_skill(player1, skill, enemies, all_sprites, skill_effects)
+        
+                # Player 2 skill activation (key right ctrl)
+                elif event.key == PLAYER2_SKILL_KEY and player2.health > 0:
                     skill = skill_bar2.activate_skill()
-                    if skill:
-                        if skill.name == "Heal":
-                            effect = skill.activate(player2, enemies=enemies)
-                        elif skill.name == "Nuke":
-                            effect = skill.activate(player2, enemies=enemies)
-                            if effect:
-                                nuke_blocking_spawns = True  # Block enemy spawns
-                        else:
-                            effect = skill.activate(player2.rect.center, enemies=enemies)
-                        if effect:
-                            all_sprites.add(effect)
-                            skill_effects.add(effect)
-                    
-                if event.key == pygame.K_ESCAPE:
+                    activate_player_skill(player2, skill, enemies, all_sprites, skill_effects)
+        
+                # Menu/shop handling
+                elif event.key == MENU_KEY:
                     if devil_shop.is_open:
-                        devil_shop.close()
+                        devil_shop.is_open = False
                     else:
                         paused = True
-                        pause_start = pygame.time.get_ticks()  # MULAI PAUSE
-                        pause_menu(screen, main_menu_callback)
+                        # Fix: Fungsi pause_menu() hanya menerima 1-2 parameter
+                        # pause_ticks += pause_menu(screen, clock, sound_manager)
+                        pause_start = pygame.time.get_ticks()
+                        quit_to_menu = pause_menu(screen, main_menu_callback)
+                        if quit_to_menu:
+                            return  # Keluar ke menu utama
                         paused = False
                         if pause_start is not None:
-                            pause_ticks += pygame.time.get_ticks() - pause_start  # TAMBAHKAN DURASI PAUSE
+                            pause_ticks += pygame.time.get_ticks() - pause_start
                             pause_start = None
-                # Add cheat console toggle
-                elif event.key == pygame.K_BACKQUOTE:
-                    cheat_mode = not cheat_mode
-                    if cheat_mode:
-                        cheat_pause_start = pygame.time.get_ticks()
-                    else:
-                        if cheat_pause_start is not None:
-                            cheat_pause_ticks += pygame.time.get_ticks() - cheat_pause_start
-                            cheat_pause_start = None
-                    cheat_input = ""
-                    cheat_message = ""
-                # Add E key to open shop when interaction is possible
-                elif event.key == pygame.K_e:
+        
+                # Shop interaction - sama untuk kedua player (tombol E)
+                elif event.key == SHOP_INTERACT_KEY:
                     if devil and devil.can_interact():
-                        devil_shop.open()
+                        devil_shop.is_open = True
+                        
+                # Shop purchase - Player 1 (tombol Enter)
+                elif event.key == PLAYER1_BUY_KEY:
+                    if devil_shop.is_open and player1.health > 0:
+                        if interaction_button1.is_visible:
+                            devil_shop.purchase_item(player1, partner1, 1)
+                            
+                # Shop purchase - Player 2 (tombol /)
+                elif event.key == PLAYER2_BUY_KEY:
+                    if devil_shop.is_open and player2.health > 0:
+                        if interaction_button2.is_visible:
+                            devil_shop.purchase_item(player2, partner2, 2)
         
         if devil_shop.is_open:
             devil_shop.update(current_events)
@@ -863,7 +1124,7 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                     p1_dist = math.hypot(p1_dx, p1_dy)
                     
                     if p1_dist <= devil.damage_circle_radius and devil.is_shop_enabled:
-                        interaction_button1.show(player1)
+                        interaction_button1.show(player1, "Press E to talk, ENTER to buy", devil)
                     else:
                         interaction_button1.hide()
                 
@@ -874,7 +1135,7 @@ def split_screen_main(screen, clock, sound_manager, main_menu_callback):
                     p2_dist = math.hypot(p2_dx, p2_dy)
                     
                     if p2_dist <= devil.damage_circle_radius and devil.is_shop_enabled:
-                        interaction_button2.show(player2)
+                        interaction_button2.show(player2, "Press E to talk, / to buy", devil)
                     else:
                         interaction_button2.hide()
             else:

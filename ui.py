@@ -239,9 +239,9 @@ class DevilShop:
         ]
         
         self.skill_items = [
-            {"name": "Thunder Strike", "price": 500, "desc": "Call lightning from the sky to damage enemies"},
-            {"name": "Heal", "price": 750, "desc": "Restore health to full"},
-            {"name": "Nuke", "price": 1000, "desc": "Eliminate all enemies but costs 50% of your health"}
+            {"name": "Thunder Strike", "price": 200, "desc": "Call lightning from the sky to damage enemies"},
+            {"name": "Heal", "price": 500, "desc": "Restore health to full"},
+            {"name": "Nuke", "price": 700, "desc": "Eliminate all enemies but costs 50% of your health"}
         ]
         
         self.partner_items = [
@@ -594,6 +594,30 @@ class DevilShop:
         hint_surface = self.desc_font.render(hint_text, True, self.text_color)
         hint_rect = hint_surface.get_rect(midbottom=(x + self.width//2, y + self.height - 5))
         surface.blit(hint_surface, hint_rect)
+        
+        # Draw which player last purchased something
+        if hasattr(self, 'show_purchase_message') and self.show_purchase_message:
+            if hasattr(self, 'purchase_message') and hasattr(self, 'purchase_message_timer'):
+                purchase_font = load_font(24)
+                purchase_text = purchase_font.render(self.purchase_message, True, (255, 215, 0))
+                purchase_rect = purchase_text.get_rect(center=(self.shop_rect.centerx, self.shop_rect.bottom + 30))
+                screen.blit(purchase_text, purchase_rect)
+                
+                # Update timer
+                self.purchase_message_timer -= 1/60  # Assuming 60 FPS
+                if self.purchase_message_timer <= 0:
+                    self.show_purchase_message = False
+        
+        # Show active player indicator if available
+        if hasattr(self, 'active_player_id') and hasattr(self, 'active_indicator_timer'):
+            if self.active_indicator_timer > 0:
+                indicator_font = load_font(28)
+                indicator_text = indicator_font.render(f"Player {self.active_player_id} is shopping", True, (200, 255, 200))
+                indicator_rect = indicator_text.get_rect(center=(self.shop_rect.centerx, self.shop_rect.top - 30))
+                screen.blit(indicator_text, indicator_rect)
+                
+                # Update timer
+                self.active_indicator_timer -= 1/60  # Assuming 60 FPS
 
 class MiniMap:
     def __init__(self, map_width, map_height, screen_width, screen_height, player_id=1, position="right"):
@@ -726,7 +750,7 @@ class MiniMap:
                 self.y = self.screen_height - self.height - 50
 
 class SkillBar:
-    def __init__(self, player_id=1, position="left", mode="solo"):
+    def __init__(self, player_id=1, position="left", mode="solo", key_label=None):
         # Load skill UI resources
         self.skill_border = pygame.image.load("assets/UI/skill/skillborder.png").convert_alpha()
         self.skill_empty = pygame.image.load("assets/UI/skill/skillempty.png").convert_alpha()
@@ -748,6 +772,9 @@ class SkillBar:
         # Add font initialization here
         self.font = load_font(20)  # Add this line to initialize the font
         
+        # Add missing attribute
+        self.effect_duration = 0.5  # Duration in seconds for activation effect
+        
         # In solo mode, use 3 skill slots
         if self.mode == "solo":
             self.skills = [None, None, None]
@@ -761,8 +788,8 @@ class SkillBar:
             self.cooldown = 0
             self.last_activation_time = 0
             self.activation_effect = 0
-            # Update the key label for Player 2
-            self.key_label = "1" if player_id == 1 else "CTRL"  # Changed from "1" to "CTRL" for Player 2
+            # Use provided key_label or default based on player
+            self.key_label = key_label or ("1" if player_id == 1 else "RCTRL")
         
         # Max cooldown time
         self.max_cooldown = 5.0  # 5 seconds cooldown by default

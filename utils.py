@@ -294,9 +294,14 @@ def show_victory_screen(screen, score, time_played, sound_manager=None, victory_
         'border_color': (255, 215, 0, 80)
     }
     
+    # Ganti fungsi return_to_menu_callback untuk tidak memanggil menu apapun
+    # Sebaliknya, cukup disable menu saat ini dan kembalikan nilai True
+    # untuk memberi sinyal kembali ke main_menu
+    return_signal = [False]  # Gunakan list untuk menyimpan status return
+    
     def return_to_menu_callback():
+        return_signal[0] = True
         menu.disable()
-        return
     
     menu.add.button('RETURN TO MAIN MENU', return_to_menu_callback, **button_style)
     
@@ -367,12 +372,19 @@ def show_victory_screen(screen, score, time_played, sound_manager=None, victory_
         pygame.time.delay(10)
     
     # Main menu loop
-    while True:
+    menu_running = True
+    while menu_running and menu.is_enabled():
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:
+                menu.disable()
+                menu_running = False
                 return
-        
+            
+        # Check if return signal was set
+        if return_signal[0]:
+            break
+            
         # Semi-transparan background
         bg_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
         bg_surface.fill((0, 0, 20, 160))
@@ -394,5 +406,10 @@ def show_victory_screen(screen, score, time_played, sound_manager=None, victory_
         
         # Update dan gambar menu
         menu.update(events)
-        menu.draw(screen)
+        if menu.is_enabled():
+            menu.draw(screen)
         pygame.display.flip()
+    
+    # Return to main menu
+    from main import main_menu
+    main_menu()
