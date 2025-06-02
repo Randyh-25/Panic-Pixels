@@ -83,10 +83,50 @@ Berikut adalah gambaran sederhana UML class diagram untuk proyek ini:
 
 ## 👥 Kontributor Pengembangan
 
-- **Randy Hendriyawan** – Game loop utama,	main.py, settings.py, sound_manager.py, solo.py, coop.py  
-- **M. Riveldo Hermawan P.** – Entitas Player dan fungsinya	Player.py, Player2.py, partner.py, Player_animations.py
-- **Ola Anggela Rosita** – 	Entitas pendukung gameplay	enemy.py, Bi_enemy.py, gollux.py, devil.py
-- **Muhammad Fadhel** – Fungsi skill dan draw map	projectile.py, Bi_projectile.py, skill.py, experience.py, maps.py
+<div align="center">
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Randyh-25">
+        <img src="https://github.com/Randyh-25.png" width="100px;" alt="Randy Hendriyawan"/>
+        <br />
+        <sub><b>Randy Hendriyawan</b></sub>
+      </a>
+      <br />
+      <sub>Game loop utama, main.py, settings.py, sound_manager.py, solo.py, coop.py</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/MuhammadRiveldo">
+        <img src="https://github.com/MuhammadRiveldo.png" width="100px;" alt="M. Riveldo Hermawan P."/>
+        <br />
+        <sub><b>M. Riveldo Hermawan P.</b></sub>
+      </a>
+      <br />
+      <sub>Entitas Player dan fungsinya, Player.py, Player2.py, partner.py, Player_animations.py</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/03-123140042-olaanggelarosita">
+        <img src="https://github.com/03-123140042-olaanggelarosita.png" width="100px;" alt="Ola Anggela Rosita"/>
+        <br />
+        <sub><b>Ola Anggela Rosita</b></sub>
+      </a>
+      <br />
+      <sub>Entitas pendukung gameplay, enemy.py, Bi_enemy.py, gollux.py, devil.py</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Scorlines">
+        <img src="https://github.com/Scorlines.png" width="100px;" alt="Muhammad Fadhel"/>
+        <br />
+        <sub><b>Muhammad Fadhel</b></sub>
+      </a>
+      <br />
+      <sub>Fungsi skill dan draw map, projectile.py, Bi_projectile.py, skill.py, experience.py, maps.py</sub>
+    </td>
+  </tr>
+</table>
+</div>
 
 ---
 
